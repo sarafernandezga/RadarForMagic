@@ -436,8 +436,8 @@
         "type": "function",
         "z": "1f6f2715d0ae1852",
         "name": "history",
-        "func": "let store = flow.get(\"historyStore\") || {};\nlet selectedId = flow.get(\"selectedCardId\") || null;\n\n// CASE A: user has selected another card to visualize\nif (typeof msg.payload === \"string\") {\n    selectedId = msg.payload;\n    flow.set(\"selectedCardId\", selectedId);\n\n    const cardData = store[selectedId];\n    if (!cardData) return [null, null, null];\n\n    const chartMsg = {\n        topic: `${cardData.name} (${cardData.set.toUpperCase()})`,\n        payload: cardData.points\n    };\n    return [null, chartMsg, null];\n}\n\n// CASE B: card price update\nconst card = msg.payload;\nif (!card || !card.card_id || typeof card.price !== \"number\") {\n    return [null, null, null];\n}\n\nconst id = card.card_id;\nconst timeMs = card.timestamp ? new Date(card.timestamp).getTime() : Date.now();\nlet isNewCard = false;\n\n// if card is new initialize history\nif (!store[id]) {\n    isNewCard = true;\n    store[id] = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        initialPrice: card.price,\n        currentPrice: card.price,\n        points: []\n    };\n}\n\n// Price update\nstore[id].currentPrice = card.price;\nstore[id].points.push({ x: timeMs, y: card.price });\nif (store[id].points.length > 50) {\n    store[id].points.shift();\n}\n\n// if there is no card selected, the first one to arrive is selected\nif (!selectedId) {\n    selectedId = id;\n    flow.set(\"selectedCardId\", selectedId);\n}\n\nflow.set(\"historyStore\", store);\n\n// OUTPUT 1: option update\nlet dropdownMsg = null;\nif (isNewCard) {\n    const options = Object.values(store)\n        .map( c=> ({ label: `${c.name} (${c.set.toUpperCase()})`, value: c.card_id}))\n        .sort((a, b) => a.label.localeCompare(b.label));\n    dropdownMsg = { options: options };\n}\n\n// OUTPUT 2: graph update\nlet chartMsg = null;\nif (id === selectedId) {\n    chartMsg = {\n        topic: `${store[id].name} (${store[id].set.toUpperCase()})`,\n        payload: store[id].points\n    };\n}\n\n// OUTPUT 3: Top 10 best rises\nconst ranking = Object.values(store)\n    .map(c => {\n        const diffPct = ((c.currentPrice - c.initialPrice) / c.initialPrice) * 100;\n        return {\n            Card: c.name,\n            Set: c.set.toUpperCase(),\n            \"Initial (€)\": c.initialPrice.toFixed(2),\n            \"Current (€)\": c.currentPrice.toFixed(2),\n            \"Difference (€)\": Number(diffPct.toFixed(2)),\n        };\n    })\n    .sort((a, b) => b[\"Difference (%)\"] - a[\"Difference (%)\"])\n    .slice(0, 10);\n\nconst tableMsg = { payload: ranking };\n\nreturn [dropdownMsg, chartMsg, tableMsg];",
-        "outputs": 3,
+        "func": "let store = flow.get(\"historyStore\") || {};\nlet selectedId = flow.get(\"selectedCardId\") || null;\n\n// CASE A: user has selected another card to visualize\nif (typeof msg.payload === \"string\") {\n    selectedId = msg.payload;\n    flow.set(\"selectedCardId\", selectedId);\n\n    const cardData = store[selectedId];\n    if (!cardData) return [null, null, null];\n\n    const chartMsg = {\n        topic: `${cardData.name} (${cardData.set.toUpperCase()})`,\n        payload: cardData.points\n    };\n    const imageMsg = {\n        topic: cardData.name,\n        payload: cardData.image_url || \"\"\n    };\n    return [null, chartMsg, null, imageMsg];\n}\n\n// CASE B: card price update\nconst card = msg.payload;\nif (!card || !card.card_id || typeof card.price !== \"number\") {\n    return [null, null, null];\n}\n\nconst id = card.card_id;\nconst timeMs = card.timestamp ? new Date(card.timestamp).getTime() : Date.now();\nlet isNewCard = false;\n\n// if card is new initialize history\nif (!store[id]) {\n    isNewCard = true;\n    store[id] = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        image_url: card.image_url || \"\",\n        initialPrice: card.price,\n        currentPrice: card.price,\n        points: []\n    };\n} else if (!store[id].image_url && card.image_url) {\n    store[id].image_url = card.image_url;\n}\n\n// Price update\nstore[id].currentPrice = card.price;\nstore[id].points.push({ x: timeMs, y: card.price });\nif (store[id].points.length > 50) {\n    store[id].points.shift();\n}\n\n// if there is no card selected, the first one to arrive is selected\nif (!selectedId) {\n    selectedId = id;\n    flow.set(\"selectedCardId\", selectedId);\n}\n\nflow.set(\"historyStore\", store);\n\n// OUTPUT 1: option update\nlet dropdownMsg = null;\nif (isNewCard) {\n    const options = Object.values(store)\n        .map( c=> ({ label: `${c.name} (${c.set.toUpperCase()})`, value: c.card_id}))\n        .sort((a, b) => a.label.localeCompare(b.label));\n    dropdownMsg = { options: options };\n}\n\n// OUTPUT 2: graph update\nlet chartMsg = null;\nlet imageMsg = null;\nif (id === selectedId) {\n    chartMsg = {\n        topic: `${store[id].name} (${store[id].set.toUpperCase()})`,\n        payload: store[id].points\n    };\n    imageMsg = {\n        topic: store[id].name,\n        payload: store[id].image_url || \"\"\n    }\n}\n\n// OUTPUT 3: Top 10 best rises\nconst ranking = Object.values(store)\n    .map(c => {\n        const diffPct = ((c.currentPrice - c.initialPrice) / c.initialPrice) * 100;\n        return {\n            Card: c.name,\n            Set: c.set.toUpperCase(),\n            \"Initial (€)\": c.initialPrice.toFixed(2),\n            \"Current (€)\": c.currentPrice.toFixed(2),\n            \"Difference (€)\": Number(diffPct.toFixed(2)),\n        };\n    })\n    .sort((a, b) => b[\"Difference (%)\"] - a[\"Difference (%)\"])\n    .slice(0, 10);\n\nconst tableMsg = { payload: ranking };\n\nreturn [dropdownMsg, chartMsg, tableMsg, imageMsg];",
+        "outputs": 4,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
@@ -454,6 +454,9 @@
             ],
             [
                 "188aa68fb5d12035"
+            ],
+            [
+                "342a81a87f7947b2"
             ]
         ]
     },
@@ -509,8 +512,8 @@
             "#334155"
         ],
         "gridColorDefault": false,
-        "width": "0",
-        "height": "0",
+        "width": "9",
+        "height": "8",
         "className": "",
         "interpolation": "linear",
         "x": 1140,
@@ -527,8 +530,8 @@
         "name": "Top rises",
         "label": "",
         "order": 1,
-        "width": 0,
-        "height": 0,
+        "width": "12",
+        "height": "12",
         "maxrows": "10",
         "passthru": false,
         "autocols": true,
@@ -577,6 +580,31 @@
         "wires": []
     },
     {
+        "id": "342a81a87f7947b2",
+        "type": "ui-template",
+        "z": "1f6f2715d0ae1852",
+        "group": "9100a987a7188986",
+        "page": "",
+        "ui": "",
+        "name": "Card Image",
+        "order": 4,
+        "width": "3",
+        "height": "8",
+        "head": "",
+        "format": "<template>\n    <div class=\"d-flex flex-colum align-center justify-center fill-height pa-2\">\n        <img\n            v-if=\"msg?.payload\"\n            :src=\"msg.payload\"\n            :alt=\"msg.topic || 'MTG Card'\"\n            style=\"max-width: 100%; max-height: 360px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\"\n            />\n            <div v-else class=\"text-caption text-grey\">\n                Image not available.\n            </div>\n    </div>\n</template>\n",
+        "noerr": 0,
+        "storeOutMessages": true,
+        "passthru": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 1130,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
         "id": "8da3327cc61a9b85",
         "type": "kafka-suite-broker",
         "name": "Kafka MTG Local",
@@ -604,7 +632,7 @@
         "type": "ui-group",
         "name": "History states",
         "page": "fad6507741848955",
-        "width": "10",
+        "width": "14",
         "height": 1,
         "order": 1,
         "showTitle": true,
@@ -649,8 +677,8 @@
         "tabs": [],
         "order": 1,
         "className": "",
-        "visible": "true",
-        "disabled": "false"
+        "visible": true,
+        "disabled": false
     },
     {
         "id": "a28cdc10244333e6",
@@ -692,7 +720,7 @@
         }
     },
     {
-        "id": "405dcb4403c9696e",
+        "id": "4277192ec74d95b7",
         "type": "global-config",
         "env": [],
         "modules": {

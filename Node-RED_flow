@@ -1,6 +1,6 @@
 [
     {
-        "id": "e57002936c45e379",
+        "id": "1f6f2715d0ae1852",
         "type": "tab",
         "label": "Flujo 1",
         "disabled": false,
@@ -8,9 +8,9 @@
         "env": []
     },
     {
-        "id": "8a18f5f2c2792936",
+        "id": "d5fbfb7d40b68d5a",
         "type": "kafka-suite-producer",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "Producer",
         "broker": "8da3327cc61a9b85",
         "topic": "market.prices.mtg",
@@ -22,20 +22,20 @@
         "autoCreateTopics": true,
         "headersProperty": "headers",
         "schemaRegistry": "",
-        "x": 860,
-        "y": 220,
+        "x": 1020,
+        "y": 140,
         "wires": [
             []
         ]
     },
     {
-        "id": "aa25c2882c3d0ccf",
+        "id": "d14f5020329da160",
         "type": "kafka-suite-consumer",
-        "z": "e57002936c45e379",
-        "name": "anomaly consumer",
+        "z": "1f6f2715d0ae1852",
+        "name": "Anomaly Consumer",
         "broker": "8da3327cc61a9b85",
         "topics": "market.prices.mtg",
-        "groupId": "mtg-prices-test",
+        "groupId": "mtg-anomaly-detector",
         "startOffset": "latest",
         "autoCommit": true,
         "autoCommitInterval": 5000,
@@ -46,65 +46,32 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 590,
-        "y": 440,
+        "x": 370,
+        "y": 320,
         "wires": [
             [
-                "7b0c38c870875e52"
+                "6db8c6644a3a7483"
             ]
         ]
     },
     {
-        "id": "fa34e1fe9e2d6d88",
+        "id": "6747a8391e434994",
         "type": "kafka-suite-admin",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "kafka admin",
         "broker": "8da3327cc61a9b85",
         "action": "listTopics",
         "allowDestructive": false,
-        "x": 150,
-        "y": 440,
+        "x": 110,
+        "y": 320,
         "wires": [
             []
         ]
     },
     {
-        "id": "d59250383550da85",
-        "type": "debug",
-        "z": "e57002936c45e379",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 960,
-        "y": 440,
-        "wires": []
-    },
-    {
-        "id": "7b0c38c870875e52",
-        "type": "json",
-        "z": "e57002936c45e379",
-        "name": "",
-        "property": "payload",
-        "action": "",
-        "pretty": false,
-        "x": 770,
-        "y": 440,
-        "wires": [
-            [
-                "d59250383550da85"
-            ]
-        ]
-    },
-    {
-        "id": "2372fee0498bdf6b",
+        "id": "8ca703da524837b2",
         "type": "inject",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "",
         "props": [
             {
@@ -113,27 +80,27 @@
         ],
         "repeat": "",
         "crontab": "",
-        "once": false,
+        "once": true,
         "onceDelay": 0.1,
         "topic": "",
         "payload": "{   \"identifiers\": [     { \"set\": \"psnc\", \"collector_number\": \"210p\" },     { \"set\": \"mh2\", \"collector_number\": \"219\" },     { \"set\": \"msh\", \"collector_number\": \"200\" },     { \"set\": \"soc\", \"collector_number\": \"235\" },     { \"set\": \"tmc\", \"collector_number\": \"57\" },     { \"set\": \"j22\", \"collector_number\": \"29\" },     { \"set\": \"msc\", \"collector_number\": \"802\" },     { \"set\": \"peoe\", \"collector_number\": \"214p\" },     { \"set\": \"plst\", \"collector_number\": \"DRC-101\" },     { \"set\": \"kld\", \"collector_number\": \"199\" },     { \"set\": \"c20\", \"collector_number\": \"146\" },     { \"set\": \"rna\", \"collector_number\": \"161\" },     { \"set\": \"tmc\", \"collector_number\": \"63\" },     { \"set\": \"mkm\", \"collector_number\": \"121\" },     { \"set\": \"j22\", \"collector_number\": \"33\" },     { \"set\": \"msc\", \"collector_number\": \"794\" },     { \"set\": \"dmu\", \"collector_number\": \"119\" },     { \"set\": \"mkm\", \"collector_number\": \"306\" },     { \"set\": \"hou\", \"collector_number\": \"90\" },     { \"set\": \"pdsk\", \"collector_number\": \"133p\" },     { \"set\": \"mid\", \"collector_number\": \"261\" },     { \"set\": \"moc\", \"collector_number\": \"398\" },     { \"set\": \"msc\", \"collector_number\": \"242\" },     { \"set\": \"uma\", \"collector_number\": \"128\" },     { \"set\": \"ths\", \"collector_number\": \"121\" },     { \"set\": \"kld\", \"collector_number\": \"264\" },     { \"set\": \"pdft\", \"collector_number\": \"127s\" },     { \"set\": \"potj\", \"collector_number\": \"125p\" },     { \"set\": \"ncc\", \"collector_number\": \"368\" },     { \"set\": \"clb\", \"collector_number\": \"182\" },     { \"set\": \"plst\", \"collector_number\": \"CLB-183\" },     { \"set\": \"ncc\", \"collector_number\": \"73\" },     { \"set\": \"pip\", \"collector_number\": \"415\" },     { \"set\": \"eoc\", \"collector_number\": \"120\" },     { \"set\": \"gtc\", \"collector_number\": \"97\" },     { \"set\": \"drc\", \"collector_number\": \"104\" },     { \"set\": \"otj\", \"collector_number\": \"374\" },     { \"set\": \"plst\", \"collector_number\": \"WAR-204\" },     { \"set\": \"pbro\", \"collector_number\": \"139p\" },     { \"set\": \"xln\", \"collector_number\": \"272\" },     { \"set\": \"cmm\", \"collector_number\": \"421\" },     { \"set\": \"msc\", \"collector_number\": \"158\" },     { \"set\": \"pthb\", \"collector_number\": \"235p\" },     { \"set\": \"acr\", \"collector_number\": \"37\" },     { \"set\": \"tsp\", \"collector_number\": \"212\" },     { \"set\": \"psnc\", \"collector_number\": \"116p\" },     { \"set\": \"neo\", \"collector_number\": \"157\" },     { \"set\": \"blc\", \"collector_number\": \"200\" },     { \"set\": \"tmt\", \"collector_number\": \"167\" },     { \"set\": \"tmt\", \"collector_number\": \"103\" },     { \"set\": \"kld\", \"collector_number\": \"126\" },     { \"set\": \"rna\", \"collector_number\": \"201\" },     { \"set\": \"plst\", \"collector_number\": \"MH3-295\" },     { \"set\": \"mat\", \"collector_number\": \"45\" },     { \"set\": \"ecc\", \"collector_number\": \"165\" },     { \"set\": \"sld\", \"collector_number\": \"2086\" },     { \"set\": \"dmu\", \"collector_number\": \"143\" },     { \"set\": \"hob\", \"collector_number\": \"110\" },     { \"set\": \"c16\", \"collector_number\": \"272\" },     { \"set\": \"pwoe\", \"collector_number\": \"150p\" },     { \"set\": \"clu\", \"collector_number\": \"44\" },     { \"set\": \"mkm\", \"collector_number\": \"282\" },     { \"set\": \"plci\", \"collector_number\": \"264p\" },     { \"set\": \"msc\", \"collector_number\": \"189\" },     { \"set\": \"ddh\", \"collector_number\": \"76\" },     { \"set\": \"ltr\", \"collector_number\": \"195\" },     { \"set\": \"fin\", \"collector_number\": \"135\" },     { \"set\": \"peld\", \"collector_number\": \"147p\" },     { \"set\": \"mh3\", \"collector_number\": \"232\" },     { \"set\": \"pone\", \"collector_number\": \"153p\" },     { \"set\": \"fca\", \"collector_number\": \"38\" },     { \"set\": \"cm2\", \"collector_number\": \"126\" },     { \"set\": \"afc\", \"collector_number\": \"56\" },     { \"set\": \"lcc\", \"collector_number\": \"295\" },     { \"set\": \"pafr\", \"collector_number\": \"167s\" }   ] }",
         "payloadType": "json",
-        "x": 150,
-        "y": 220,
+        "x": 120,
+        "y": 140,
         "wires": [
             [
-                "4f5d51f61653e040"
+                "59042b6088b61ab4"
             ]
         ]
     },
     {
-        "id": "71bb0be90656362e",
+        "id": "3ec04b8f6275625a",
         "type": "kafka-suite-consumer",
-        "z": "e57002936c45e379",
-        "name": "Consumer",
+        "z": "1f6f2715d0ae1852",
+        "name": "Price History Consumer",
         "broker": "8da3327cc61a9b85",
         "topics": "market.prices.mtg",
-        "groupId": "mtg-radar-test",
+        "groupId": "mtg-price-history",
         "startOffset": "latest",
         "autoCommit": true,
         "autoCommitInterval": 5000,
@@ -144,55 +111,38 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 570,
-        "y": 560,
+        "x": 390,
+        "y": 520,
         "wires": [
             [
-                "6bec5aaac074dd16"
+                "4aec73ca453e8498"
             ]
         ]
     },
     {
-        "id": "581f405bc0d4205a",
-        "type": "debug",
-        "z": "e57002936c45e379",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 960,
-        "y": 560,
-        "wires": []
-    },
-    {
-        "id": "6bec5aaac074dd16",
+        "id": "4aec73ca453e8498",
         "type": "json",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "",
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 770,
-        "y": 560,
+        "x": 610,
+        "y": 520,
         "wires": [
             [
-                "581f405bc0d4205a"
+                "630b7f70707ca142"
             ]
         ]
     },
     {
-        "id": "35ede51fbac9aaed",
+        "id": "b2e2e14b53513803",
         "type": "kafka-suite-consumer",
-        "z": "e57002936c45e379",
-        "name": "Consumer",
+        "z": "1f6f2715d0ae1852",
+        "name": "Alert Manager Consumer",
         "broker": "8da3327cc61a9b85",
-        "topics": "market.prices.mtg,market.67890.prices.mtg",
-        "groupId": "mtg-test",
+        "topics": "market.anomalies.mtg",
+        "groupId": "mtg-trend-analyzer",
         "startOffset": "latest",
         "autoCommit": true,
         "autoCommitInterval": 5000,
@@ -203,51 +153,32 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 570,
+        "x": 510,
         "y": 680,
         "wires": [
             [
-                "1defced1c262372c"
+                "997b094f4da24b18"
             ]
         ]
     },
     {
-        "id": "d877c9525c3dde9d",
-        "type": "debug",
-        "z": "e57002936c45e379",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 960,
-        "y": 680,
-        "wires": []
-    },
-    {
-        "id": "1defced1c262372c",
+        "id": "997b094f4da24b18",
         "type": "json",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "",
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 770,
+        "x": 750,
         "y": 680,
         "wires": [
-            [
-                "d877c9525c3dde9d"
-            ]
+            []
         ]
     },
     {
-        "id": "4f5d51f61653e040",
+        "id": "59042b6088b61ab4",
         "type": "http request",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "Magic API petition",
         "method": "POST",
         "ret": "obj",
@@ -279,35 +210,377 @@
                 "valueValue": ""
             }
         ],
-        "x": 430,
-        "y": 220,
+        "x": 350,
+        "y": 140,
         "wires": [
             [
-                "bdc25d813cef9b1a"
+                "f70643bef3a441a8"
             ]
         ]
     },
     {
-        "id": "bdc25d813cef9b1a",
+        "id": "f70643bef3a441a8",
         "type": "json",
-        "z": "e57002936c45e379",
+        "z": "1f6f2715d0ae1852",
         "name": "",
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 670,
-        "y": 220,
+        "x": 590,
+        "y": 140,
         "wires": [
             [
-                "8a18f5f2c2792936"
+                "51f0ed30dc7e3126"
             ]
         ]
+    },
+    {
+        "id": "51f0ed30dc7e3126",
+        "type": "function",
+        "z": "1f6f2715d0ae1852",
+        "name": "function 1",
+        "func": "\nlet payload = msg.payload;\n\nif (typeof payload === \"string\") {\n    payload = JSON.parse(payload);\n}\n\nif (!payload || !Array.isArray(payload.data)) {\n    node.error(\"No se encuentra el array de cartas\", msg);\n    return null;\n}\n\nconst cards = [];\n\nfor (const card of payload.data) {\n    const price = card.prices?.eur;\n\n    if (price === null || price === undefined || price === \"\") {\n        continue;\n    }\n\n    cards.push({\n        card_id: card.id,\n        name: card.name,\n        image_url: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || \"\",\n        set: card.set,\n        rarity: card.rarity,\n        price: Number(price),\n        currency: \"EUR\"\n    });\n}\n\n// Guardar las cartas en contexto GLOBAL\nglobal.set(\"cards\", cards);\n\nnode.warn(\"Cartas guardadas: \" + cards.length);\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 140,
+        "wires": [
+            [
+                "d5fbfb7d40b68d5a"
+            ]
+        ]
+    },
+    {
+        "id": "5f7a57365e011759",
+        "type": "function",
+        "z": "1f6f2715d0ae1852",
+        "name": "function 2",
+        "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta: guardamos el precio\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n    return null;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date ().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 320,
+        "wires": [
+            [
+                "66d6ec98aae05715",
+                "0b60bed03db5e564"
+            ]
+        ]
+    },
+    {
+        "id": "66d6ec98aae05715",
+        "type": "debug",
+        "z": "1f6f2715d0ae1852",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 980,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "c1f752ecb605540e",
+        "type": "inject",
+        "z": "1f6f2715d0ae1852",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "2",
+        "topic": "",
+        "payload": "{   \"identifiers\": [     { \"set\": \"psnc\", \"collector_number\": \"210p\" },     { \"set\": \"mh2\", \"collector_number\": \"219\" },     { \"set\": \"msh\", \"collector_number\": \"200\" },     { \"set\": \"soc\", \"collector_number\": \"235\" },     { \"set\": \"tmc\", \"collector_number\": \"57\" },     { \"set\": \"j22\", \"collector_number\": \"29\" },     { \"set\": \"msc\", \"collector_number\": \"802\" },     { \"set\": \"peoe\", \"collector_number\": \"214p\" },     { \"set\": \"plst\", \"collector_number\": \"DRC-101\" },     { \"set\": \"kld\", \"collector_number\": \"199\" },     { \"set\": \"c20\", \"collector_number\": \"146\" },     { \"set\": \"rna\", \"collector_number\": \"161\" },     { \"set\": \"tmc\", \"collector_number\": \"63\" },     { \"set\": \"mkm\", \"collector_number\": \"121\" },     { \"set\": \"j22\", \"collector_number\": \"33\" },     { \"set\": \"msc\", \"collector_number\": \"794\" },     { \"set\": \"dmu\", \"collector_number\": \"119\" },     { \"set\": \"mkm\", \"collector_number\": \"306\" },     { \"set\": \"hou\", \"collector_number\": \"90\" },     { \"set\": \"pdsk\", \"collector_number\": \"133p\" },     { \"set\": \"mid\", \"collector_number\": \"261\" },     { \"set\": \"moc\", \"collector_number\": \"398\" },     { \"set\": \"msc\", \"collector_number\": \"242\" },     { \"set\": \"uma\", \"collector_number\": \"128\" },     { \"set\": \"ths\", \"collector_number\": \"121\" },     { \"set\": \"kld\", \"collector_number\": \"264\" },     { \"set\": \"pdft\", \"collector_number\": \"127s\" },     { \"set\": \"potj\", \"collector_number\": \"125p\" },     { \"set\": \"ncc\", \"collector_number\": \"368\" },     { \"set\": \"clb\", \"collector_number\": \"182\" },     { \"set\": \"plst\", \"collector_number\": \"CLB-183\" },     { \"set\": \"ncc\", \"collector_number\": \"73\" },     { \"set\": \"pip\", \"collector_number\": \"415\" },     { \"set\": \"eoc\", \"collector_number\": \"120\" },     { \"set\": \"gtc\", \"collector_number\": \"97\" },     { \"set\": \"drc\", \"collector_number\": \"104\" },     { \"set\": \"otj\", \"collector_number\": \"374\" },     { \"set\": \"plst\", \"collector_number\": \"WAR-204\" },     { \"set\": \"pbro\", \"collector_number\": \"139p\" },     { \"set\": \"xln\", \"collector_number\": \"272\" },     { \"set\": \"cmm\", \"collector_number\": \"421\" },     { \"set\": \"msc\", \"collector_number\": \"158\" },     { \"set\": \"pthb\", \"collector_number\": \"235p\" },     { \"set\": \"acr\", \"collector_number\": \"37\" },     { \"set\": \"tsp\", \"collector_number\": \"212\" },     { \"set\": \"psnc\", \"collector_number\": \"116p\" },     { \"set\": \"neo\", \"collector_number\": \"157\" },     { \"set\": \"blc\", \"collector_number\": \"200\" },     { \"set\": \"tmt\", \"collector_number\": \"167\" },     { \"set\": \"tmt\", \"collector_number\": \"103\" },     { \"set\": \"kld\", \"collector_number\": \"126\" },     { \"set\": \"rna\", \"collector_number\": \"201\" },     { \"set\": \"plst\", \"collector_number\": \"MH3-295\" },     { \"set\": \"mat\", \"collector_number\": \"45\" },     { \"set\": \"ecc\", \"collector_number\": \"165\" },     { \"set\": \"sld\", \"collector_number\": \"2086\" },     { \"set\": \"dmu\", \"collector_number\": \"143\" },     { \"set\": \"hob\", \"collector_number\": \"110\" },     { \"set\": \"c16\", \"collector_number\": \"272\" },     { \"set\": \"pwoe\", \"collector_number\": \"150p\" },     { \"set\": \"clu\", \"collector_number\": \"44\" },     { \"set\": \"mkm\", \"collector_number\": \"282\" },     { \"set\": \"plci\", \"collector_number\": \"264p\" },     { \"set\": \"msc\", \"collector_number\": \"189\" },     { \"set\": \"ddh\", \"collector_number\": \"76\" },     { \"set\": \"ltr\", \"collector_number\": \"195\" },     { \"set\": \"fin\", \"collector_number\": \"135\" },     { \"set\": \"peld\", \"collector_number\": \"147p\" },     { \"set\": \"mh3\", \"collector_number\": \"232\" },     { \"set\": \"pone\", \"collector_number\": \"153p\" },     { \"set\": \"fca\", \"collector_number\": \"38\" },     { \"set\": \"cm2\", \"collector_number\": \"126\" },     { \"set\": \"afc\", \"collector_number\": \"56\" },     { \"set\": \"lcc\", \"collector_number\": \"295\" },     { \"set\": \"pafr\", \"collector_number\": \"167s\" }   ] }",
+        "payloadType": "json",
+        "x": 200,
+        "y": 880,
+        "wires": [
+            [
+                "2471588c80e39d6b"
+            ]
+        ]
+    },
+    {
+        "id": "2471588c80e39d6b",
+        "type": "function",
+        "z": "1f6f2715d0ae1852",
+        "name": "function 3",
+        "func": "\nlet cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    node.warn(\"No hay cartas cargadas. Ejecuta primero Scryfall.\");\n    return null;\n}\n\nconst messages = [];\n\nfor (const card of cards) {\n\n    const oldPrice = card.price;\n\n    // Variación normal entre -5 % y +5 %\n    let variation = (Math.random() * 10 - 5) / 100;\n\n    // Un 5 % de probabilidad de una variación brusca\n    if (Math.random() < 0.05) {\n        variation = Math.random() < 0.5 ? 0.30 : -0.30;\n    }\n\n    let newPrice = Math.max(\n        0.01,\n        Number((oldPrice * (1 + variation)).toFixed(2))\n    );\n\n    // Actualizar el precio guardado\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\n\nnode.warn(\"Mensajes simulados: \" + messages.length);\n\nreturn [messages];\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 440,
+        "y": 880,
+        "wires": [
+            [
+                "3a9da58a7672f241"
+            ]
+        ]
+    },
+    {
+        "id": "3a9da58a7672f241",
+        "type": "kafka-suite-producer",
+        "z": "1f6f2715d0ae1852",
+        "name": "Producer",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.prices.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 680,
+        "y": 880,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6db8c6644a3a7483",
+        "type": "json",
+        "z": "1f6f2715d0ae1852",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 570,
+        "y": 320,
+        "wires": [
+            [
+                "5f7a57365e011759"
+            ]
+        ]
+    },
+    {
+        "id": "0b60bed03db5e564",
+        "type": "kafka-suite-producer",
+        "z": "1f6f2715d0ae1852",
+        "name": "",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.anomalies.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 1040,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2672f8c86603bb48",
+        "type": "ui-dropdown",
+        "z": "1f6f2715d0ae1852",
+        "group": "9100a987a7188986",
+        "name": "Card selection",
+        "label": "Select Option:",
+        "tooltip": "",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "multiple": false,
+        "chips": false,
+        "clearable": false,
+        "options": [
+            {
+                "label": "",
+                "value": "",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "topic",
+        "topicType": "msg",
+        "className": "",
+        "typeIsComboBox": true,
+        "msgTrigger": "onChange",
+        "x": 920,
+        "y": 420,
+        "wires": [
+            [
+                "630b7f70707ca142"
+            ]
+        ]
+    },
+    {
+        "id": "630b7f70707ca142",
+        "type": "function",
+        "z": "1f6f2715d0ae1852",
+        "name": "history",
+        "func": "let store = flow.get(\"historyStore\") || {};\nlet selectedId = flow.get(\"selectedCardId\") || null;\n\n// CASE A: user has selected another card to visualize\nif (typeof msg.payload === \"string\") {\n    selectedId = msg.payload;\n    flow.set(\"selectedCardId\", selectedId);\n\n    const cardData = store[selectedId];\n    if (!cardData) return [null, null, null];\n\n    const chartMsg = {\n        topic: `${cardData.name} (${cardData.set.toUpperCase()})`,\n        payload: cardData.points\n    };\n    return [null, chartMsg, null];\n}\n\n// CASE B: card price update\nconst card = msg.payload;\nif (!card || !card.card_id || typeof card.price !== \"number\") {\n    return [null, null, null];\n}\n\nconst id = card.card_id;\nconst timeMs = card.timestamp ? new Date(card.timestamp).getTime() : Date.now();\nlet isNewCard = false;\n\n// if card is new initialize history\nif (!store[id]) {\n    isNewCard = true;\n    store[id] = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        initialPrice: card.price,\n        currentPrice: card.price,\n        points: []\n    };\n}\n\n// Price update\nstore[id].currentPrice = card.price;\nstore[id].points.push({ x: timeMs, y: card.price });\nif (store[id].points.length > 50) {\n    store[id].points.shift();\n}\n\n// if there is no card selected, the first one to arrive is selected\nif (!selectedId) {\n    selectedId = id;\n    flow.set(\"selectedCardId\", selectedId);\n}\n\nflow.set(\"historyStore\", store);\n\n// OUTPUT 1: option update\nlet dropdownMsg = null;\nif (isNewCard) {\n    const options = Object.values(store)\n        .map( c=> ({ label: `${c.name} (${c.set.toUpperCase()})`, value: c.card_id}))\n        .sort((a, b) => a.label.localeCompare(b.label));\n    dropdownMsg = { options: options };\n}\n\n// OUTPUT 2: graph update\nlet chartMsg = null;\nif (id === selectedId) {\n    chartMsg = {\n        topic: `${store[id].name} (${store[id].set.toUpperCase()})`,\n        payload: store[id].points\n    };\n}\n\n// OUTPUT 3: Top 10 best rises\nconst ranking = Object.values(store)\n    .map(c => {\n        const diffPct = ((c.currentPrice - c.initialPrice) / c.initialPrice) * 100;\n        return {\n            Card: c.name,\n            Set: c.set.toUpperCase(),\n            \"Initial (€)\": c.initialPrice.toFixed(2),\n            \"Current (€)\": c.currentPrice.toFixed(2),\n            \"Difference (€)\": Number(diffPct.toFixed(2)),\n        };\n    })\n    .sort((a, b) => b[\"Difference (%)\"] - a[\"Difference (%)\"])\n    .slice(0, 10);\n\nconst tableMsg = { payload: ranking };\n\nreturn [dropdownMsg, chartMsg, tableMsg];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 910,
+        "y": 520,
+        "wires": [
+            [
+                "2672f8c86603bb48"
+            ],
+            [
+                "ac5f0d7eabe0f0f5"
+            ],
+            [
+                "188aa68fb5d12035"
+            ]
+        ]
+    },
+    {
+        "id": "ac5f0d7eabe0f0f5",
+        "type": "ui-chart",
+        "z": "1f6f2715d0ae1852",
+        "group": "9100a987a7188986",
+        "name": "Card Evolution",
+        "label": "Card Evolution",
+        "order": 3,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisLabel": "",
+        "xAxisProperty": "x",
+        "xAxisPropertyType": "property",
+        "xAxisType": "time",
+        "xAxisFormat": "",
+        "xAxisFormatType": "auto",
+        "xmin": "",
+        "xmax": "",
+        "yAxisLabel": "",
+        "yAxisProperty": "y",
+        "yAxisPropertyType": "property",
+        "ymin": "",
+        "ymax": "",
+        "bins": 10,
+        "action": "replace",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 1,
+        "removeOlderUnit": "3600",
+        "removeOlderPoints": "",
+        "colors": [
+            "#38bdf8",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "textColor": [
+            "#e2e8f0"
+        ],
+        "textColorDefault": false,
+        "gridColor": [
+            "#334155"
+        ],
+        "gridColorDefault": false,
+        "width": "0",
+        "height": "0",
+        "className": "",
+        "interpolation": "linear",
+        "x": 1140,
+        "y": 480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "188aa68fb5d12035",
+        "type": "ui-table",
+        "z": "1f6f2715d0ae1852",
+        "group": "9100a987a7188986",
+        "name": "Top rises",
+        "label": "",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "maxrows": "10",
+        "passthru": false,
+        "autocols": true,
+        "showSearch": true,
+        "deselect": true,
+        "selectionType": "none",
+        "columns": [],
+        "mobileBreakpoint": "sm",
+        "mobileBreakpointType": "defaults",
+        "action": "replace",
+        "className": "",
+        "x": 1120,
+        "y": 540,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1ab07aee9bba780a",
+        "type": "comment",
+        "z": "1f6f2715d0ae1852",
+        "name": "API request",
+        "info": "",
+        "x": 110,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "4d1fbc870e449b8e",
+        "type": "comment",
+        "z": "1f6f2715d0ae1852",
+        "name": "Kafka processing",
+        "info": "",
+        "x": 120,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "1692c4d50b979feb",
+        "type": "comment",
+        "z": "1f6f2715d0ae1852",
+        "name": "Group: mtg-anomaly-detector",
+        "info": "",
+        "x": 400,
+        "y": 260,
+        "wires": []
     },
     {
         "id": "8da3327cc61a9b85",
         "type": "kafka-suite-broker",
         "name": "Kafka MTG Local",
-        "brokers": "localhost:9092",
+        "brokers": "kafka:19092",
         "clientId": "node-red-kafka-suite",
         "backend": "kafkajs",
         "servicePreset": "self-hosted",
@@ -327,11 +600,104 @@
         "oauthTlsReject": true
     },
     {
-        "id": "6b33623500b97ab6",
+        "id": "9100a987a7188986",
+        "type": "ui-group",
+        "name": "History states",
+        "page": "fad6507741848955",
+        "width": "10",
+        "height": 1,
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default",
+        "keepLoaded": false,
+        "tab": ""
+    },
+    {
+        "id": "fad6507741848955",
+        "type": "ui-page",
+        "name": "Radar MTG",
+        "ui": "a28cdc10244333e6",
+        "path": "/radarMTG",
+        "icon": "home",
+        "layout": "notebook",
+        "theme": "2c4fc912c1e97cc0",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": "0",
+                "cols": "3"
+            },
+            {
+                "name": "Tablet",
+                "px": "576",
+                "cols": "6"
+            },
+            {
+                "name": "Small Desktop",
+                "px": "768",
+                "cols": "9"
+            },
+            {
+                "name": "Desktop",
+                "px": "1024",
+                "cols": "12"
+            }
+        ],
+        "tabs": [],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "a28cdc10244333e6",
+        "type": "ui-base",
+        "name": "Radar MTG",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default",
+        "showReconnectNotification": true,
+        "notificationDisplayTime": 1,
+        "showDisconnectNotification": true,
+        "allowInstall": false
+    },
+    {
+        "id": "2c4fc912c1e97cc0",
+        "type": "ui-theme",
+        "name": "Dark Theme",
+        "colors": {
+            "surface": "#0b0f19",
+            "primary": "#38bdf8",
+            "bgPage": "#0f172a",
+            "groupBg": "#1e293b",
+            "groupOutline": "#334155"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "12px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "405dcb4403c9696e",
         "type": "global-config",
         "env": [],
         "modules": {
-            "node-red-contrib-kafka-suite": "0.0.6"
+            "node-red-contrib-kafka-suite": "0.0.6",
+            "@flowfuse/node-red-dashboard": "1.37.0"
         }
     }
 ]

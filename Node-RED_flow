@@ -1,25 +1,253 @@
 [
     {
-        "id": "f6f2187d.f17ca8",
+        "id": "e57002936c45e379",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Flujo 1",
         "disabled": false,
-        "info": ""
+        "info": "",
+        "env": []
     },
     {
-        "id": "3cc11d24.ff01a2",
-        "type": "comment",
-        "z": "f6f2187d.f17ca8",
-        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
-        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
-        "x": 350,
-        "y": 80,
+        "id": "8a18f5f2c2792936",
+        "type": "kafka-suite-producer",
+        "z": "e57002936c45e379",
+        "name": "Producer",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.prices.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 860,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "aa25c2882c3d0ccf",
+        "type": "kafka-suite-consumer",
+        "z": "e57002936c45e379",
+        "name": "anomaly consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.prices.mtg",
+        "groupId": "mtg-prices-test",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 590,
+        "y": 440,
+        "wires": [
+            [
+                "7b0c38c870875e52"
+            ]
+        ]
+    },
+    {
+        "id": "fa34e1fe9e2d6d88",
+        "type": "kafka-suite-admin",
+        "z": "e57002936c45e379",
+        "name": "kafka admin",
+        "broker": "8da3327cc61a9b85",
+        "action": "listTopics",
+        "allowDestructive": false,
+        "x": 150,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d59250383550da85",
+        "type": "debug",
+        "z": "e57002936c45e379",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 440,
         "wires": []
     },
     {
-        "id": "aeaea10feda33dc1",
+        "id": "7b0c38c870875e52",
+        "type": "json",
+        "z": "e57002936c45e379",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 770,
+        "y": 440,
+        "wires": [
+            [
+                "d59250383550da85"
+            ]
+        ]
+    },
+    {
+        "id": "2372fee0498bdf6b",
+        "type": "inject",
+        "z": "e57002936c45e379",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{   \"identifiers\": [     { \"set\": \"psnc\", \"collector_number\": \"210p\" },     { \"set\": \"mh2\", \"collector_number\": \"219\" },     { \"set\": \"msh\", \"collector_number\": \"200\" },     { \"set\": \"soc\", \"collector_number\": \"235\" },     { \"set\": \"tmc\", \"collector_number\": \"57\" },     { \"set\": \"j22\", \"collector_number\": \"29\" },     { \"set\": \"msc\", \"collector_number\": \"802\" },     { \"set\": \"peoe\", \"collector_number\": \"214p\" },     { \"set\": \"plst\", \"collector_number\": \"DRC-101\" },     { \"set\": \"kld\", \"collector_number\": \"199\" },     { \"set\": \"c20\", \"collector_number\": \"146\" },     { \"set\": \"rna\", \"collector_number\": \"161\" },     { \"set\": \"tmc\", \"collector_number\": \"63\" },     { \"set\": \"mkm\", \"collector_number\": \"121\" },     { \"set\": \"j22\", \"collector_number\": \"33\" },     { \"set\": \"msc\", \"collector_number\": \"794\" },     { \"set\": \"dmu\", \"collector_number\": \"119\" },     { \"set\": \"mkm\", \"collector_number\": \"306\" },     { \"set\": \"hou\", \"collector_number\": \"90\" },     { \"set\": \"pdsk\", \"collector_number\": \"133p\" },     { \"set\": \"mid\", \"collector_number\": \"261\" },     { \"set\": \"moc\", \"collector_number\": \"398\" },     { \"set\": \"msc\", \"collector_number\": \"242\" },     { \"set\": \"uma\", \"collector_number\": \"128\" },     { \"set\": \"ths\", \"collector_number\": \"121\" },     { \"set\": \"kld\", \"collector_number\": \"264\" },     { \"set\": \"pdft\", \"collector_number\": \"127s\" },     { \"set\": \"potj\", \"collector_number\": \"125p\" },     { \"set\": \"ncc\", \"collector_number\": \"368\" },     { \"set\": \"clb\", \"collector_number\": \"182\" },     { \"set\": \"plst\", \"collector_number\": \"CLB-183\" },     { \"set\": \"ncc\", \"collector_number\": \"73\" },     { \"set\": \"pip\", \"collector_number\": \"415\" },     { \"set\": \"eoc\", \"collector_number\": \"120\" },     { \"set\": \"gtc\", \"collector_number\": \"97\" },     { \"set\": \"drc\", \"collector_number\": \"104\" },     { \"set\": \"otj\", \"collector_number\": \"374\" },     { \"set\": \"plst\", \"collector_number\": \"WAR-204\" },     { \"set\": \"pbro\", \"collector_number\": \"139p\" },     { \"set\": \"xln\", \"collector_number\": \"272\" },     { \"set\": \"cmm\", \"collector_number\": \"421\" },     { \"set\": \"msc\", \"collector_number\": \"158\" },     { \"set\": \"pthb\", \"collector_number\": \"235p\" },     { \"set\": \"acr\", \"collector_number\": \"37\" },     { \"set\": \"tsp\", \"collector_number\": \"212\" },     { \"set\": \"psnc\", \"collector_number\": \"116p\" },     { \"set\": \"neo\", \"collector_number\": \"157\" },     { \"set\": \"blc\", \"collector_number\": \"200\" },     { \"set\": \"tmt\", \"collector_number\": \"167\" },     { \"set\": \"tmt\", \"collector_number\": \"103\" },     { \"set\": \"kld\", \"collector_number\": \"126\" },     { \"set\": \"rna\", \"collector_number\": \"201\" },     { \"set\": \"plst\", \"collector_number\": \"MH3-295\" },     { \"set\": \"mat\", \"collector_number\": \"45\" },     { \"set\": \"ecc\", \"collector_number\": \"165\" },     { \"set\": \"sld\", \"collector_number\": \"2086\" },     { \"set\": \"dmu\", \"collector_number\": \"143\" },     { \"set\": \"hob\", \"collector_number\": \"110\" },     { \"set\": \"c16\", \"collector_number\": \"272\" },     { \"set\": \"pwoe\", \"collector_number\": \"150p\" },     { \"set\": \"clu\", \"collector_number\": \"44\" },     { \"set\": \"mkm\", \"collector_number\": \"282\" },     { \"set\": \"plci\", \"collector_number\": \"264p\" },     { \"set\": \"msc\", \"collector_number\": \"189\" },     { \"set\": \"ddh\", \"collector_number\": \"76\" },     { \"set\": \"ltr\", \"collector_number\": \"195\" },     { \"set\": \"fin\", \"collector_number\": \"135\" },     { \"set\": \"peld\", \"collector_number\": \"147p\" },     { \"set\": \"mh3\", \"collector_number\": \"232\" },     { \"set\": \"pone\", \"collector_number\": \"153p\" },     { \"set\": \"fca\", \"collector_number\": \"38\" },     { \"set\": \"cm2\", \"collector_number\": \"126\" },     { \"set\": \"afc\", \"collector_number\": \"56\" },     { \"set\": \"lcc\", \"collector_number\": \"295\" },     { \"set\": \"pafr\", \"collector_number\": \"167s\" }   ] }",
+        "payloadType": "json",
+        "x": 150,
+        "y": 220,
+        "wires": [
+            [
+                "4f5d51f61653e040"
+            ]
+        ]
+    },
+    {
+        "id": "71bb0be90656362e",
+        "type": "kafka-suite-consumer",
+        "z": "e57002936c45e379",
+        "name": "Consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.prices.mtg",
+        "groupId": "mtg-radar-test",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 570,
+        "y": 560,
+        "wires": [
+            [
+                "6bec5aaac074dd16"
+            ]
+        ]
+    },
+    {
+        "id": "581f405bc0d4205a",
+        "type": "debug",
+        "z": "e57002936c45e379",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "6bec5aaac074dd16",
+        "type": "json",
+        "z": "e57002936c45e379",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 770,
+        "y": 560,
+        "wires": [
+            [
+                "581f405bc0d4205a"
+            ]
+        ]
+    },
+    {
+        "id": "35ede51fbac9aaed",
+        "type": "kafka-suite-consumer",
+        "z": "e57002936c45e379",
+        "name": "Consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.prices.mtg,market.67890.prices.mtg",
+        "groupId": "mtg-test",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 570,
+        "y": 680,
+        "wires": [
+            [
+                "1defced1c262372c"
+            ]
+        ]
+    },
+    {
+        "id": "d877c9525c3dde9d",
+        "type": "debug",
+        "z": "e57002936c45e379",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "1defced1c262372c",
+        "type": "json",
+        "z": "e57002936c45e379",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 770,
+        "y": 680,
+        "wires": [
+            [
+                "d877c9525c3dde9d"
+            ]
+        ]
+    },
+    {
+        "id": "4f5d51f61653e040",
         "type": "http request",
-        "z": "f6f2187d.f17ca8",
+        "z": "e57002936c45e379",
         "name": "Magic API petition",
         "method": "POST",
         "ret": "obj",
@@ -29,7 +257,7 @@
         "persist": false,
         "proxy": "",
         "insecureHTTPParser": false,
-        "authType": "",
+        "authType": "basic",
         "senderr": false,
         "headers": [
             {
@@ -51,54 +279,59 @@
                 "valueValue": ""
             }
         ],
-        "x": 390,
-        "y": 260,
+        "x": 430,
+        "y": 220,
         "wires": [
             [
-                "335277dfd804c960"
+                "bdc25d813cef9b1a"
             ]
         ]
     },
     {
-        "id": "737f3138d43fd8b3",
-        "type": "inject",
-        "z": "f6f2187d.f17ca8",
+        "id": "bdc25d813cef9b1a",
+        "type": "json",
+        "z": "e57002936c45e379",
         "name": "",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "{   \"identifiers\": [     {       \"id\": \"683a5707-cddb-494d-9b41-51b4584ded69\"     },     {       \"name\": \"Ancient Tomb\"     },     {       \"set\": \"mrd\",       \"collector_number\": \"150\"     }   ] }",
-        "payloadType": "json",
-        "x": 130,
-        "y": 260,
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 670,
+        "y": 220,
         "wires": [
             [
-                "aeaea10feda33dc1"
+                "8a18f5f2c2792936"
             ]
         ]
     },
     {
-        "id": "335277dfd804c960",
-        "type": "debug",
-        "z": "f6f2187d.f17ca8",
-        "name": "Magic API response",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 640,
-        "y": 260,
-        "wires": []
+        "id": "8da3327cc61a9b85",
+        "type": "kafka-suite-broker",
+        "name": "Kafka MTG Local",
+        "brokers": "localhost:9092",
+        "clientId": "node-red-kafka-suite",
+        "backend": "kafkajs",
+        "servicePreset": "self-hosted",
+        "authType": "none",
+        "saslSsl": true,
+        "logLevel": "warn",
+        "connectionTimeout": 3000,
+        "requestTimeout": 30000,
+        "maxRetryTime": 30000,
+        "initialRetryTime": 300,
+        "retries": 5,
+        "sslRejectUnauthorized": true,
+        "oauthTokenEndpoint": "",
+        "oauthGrantType": "client_credentials",
+        "oauthScope": "",
+        "oauthAudience": "",
+        "oauthTlsReject": true
+    },
+    {
+        "id": "6b33623500b97ab6",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-kafka-suite": "0.0.6"
+        }
     }
 ]

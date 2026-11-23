@@ -28,6 +28,7 @@ services:
       - "1880:1880"
     volumes:
       - node_red_data:/data
+      - ./mazos:/mazos
     depends_on:
       - kafka
 

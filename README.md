@@ -84,6 +84,13 @@ The entire stack is containerized using **Docker Compose**, allowing to keep the
 
 ---
 
+## Use of environment variables
+
+We have declared as environment variables `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID` so that they are not defined in the node-RED flow, and by fault public in the repository. These variables are declared in a `.env` file in the same directory as the `docker-comose.yaml`. In the repository there is an example of how to define them (`.env.example`). We access those variables in node-RED with: `env.get("TELEGRAM_VARIABLE");`.
+
+
+---
+
 ## Quick Command Reference
 
 Prepare a project directory containing `docker-comopes.yaml` before running any of the following commands. Docker Desktop must be running before executing the commands.
@@ -91,7 +98,7 @@ Prepare a project directory containing `docker-comopes.yaml` before running any 
 ### Start the environment
 
 ```bash
-# Start Kafka and Node-RED in detached mode (background)
+# Start Kafka and Node-RED in detached mode (background) for the first time or after modifying the docker-compose.yaml
 docker compose up -d
 ```
 

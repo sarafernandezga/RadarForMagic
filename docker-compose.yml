@@ -26,6 +26,9 @@ services:
     container_name: MTGRadar
     ports:
       - "1880:1880"
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     volumes:
       - node_red_data:/data
       - ./mazos:/mazos

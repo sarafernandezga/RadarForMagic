@@ -114,7 +114,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "debug 1",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -156,7 +156,7 @@
         "type": "function",
         "z": "dafa5e8ec21e16fb",
         "name": "function 3",
-        "func": "\nlet cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    node.warn(\"No hay cartas cargadas. Ejecuta primero Scryfall.\");\n    return null;\n}\n\nconst messages = [];\n\nfor (const card of cards) {\n\n    const oldPrice = card.price;\n\n    // Variación normal entre -5 % y +5 %\n    let variation = (Math.random() * 10 - 5) / 100;\n\n    // Un 5 % de probabilidad de una variación brusca\n    if (Math.random() < 0.05) {\n        variation = Math.random() < 0.5 ? 0.30 : -0.30;\n    }\n\n    let newPrice = Math.max(\n        0.01,\n        Number((oldPrice * (1 + variation)).toFixed(2))\n    );\n\n    // Actualizar el precio guardado\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\n\nnode.warn(\"Mensajes simulados: \" + messages.length);\n\nreturn [messages];\n",
+        "func": "\nlet cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    return null;\n}\n\nlet sim = context.get(\"simState\") || {\n    tick: 0,\n    nextEvent: {}\n};\n\nsim.tick++;\n\nconst messages = [];\n\nconst specialCards = [\n    \"Teferi's Protection\",\n    \"Sheoldred, the Apocalypse\"\n];\n\nfunction randomInt(min, max) {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n}\n\nfor (const card of cards) {\n\n    const id = card.card_id;\n    const oldPrice = Number(card.price);\n\n    if (!id || !Number.isFinite(oldPrice) || oldPrice <= 0) {\n        continue;\n    }\n\n    const isSpecial = specialCards.includes(card.name);\n\n    // Variación habitual: entre -0,9 % y +0,9 %\n    const normalVariation = (Math.random() * 1.8 - 0.9) / 100;\n\n    let newPrice = oldPrice * (1 + normalVariation);\n\n    // Pequeños movimientos bruscos para dar dinamismo\n    const smallJumpProbability = isSpecial ? 0.12 : 0.04;\n\n    if (Math.random() < smallJumpProbability) {\n\n        const jump = (1.5 + Math.random() * 3) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice *= (1 + direction * jump);\n    }\n\n    // Las dos cartas protagonistas tienen anomalías programadas\n    if (isSpecial) {\n\n        if (sim.nextEvent[id] === undefined) {\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n\n        if (sim.tick >= sim.nextEvent[id]) {\n\n            const jump = (25 + Math.random() * 10) / 100;\n            const direction = Math.random() < 0.5 ? 1 : -1;\n\n            newPrice = oldPrice * (1 + direction * jump);\n\n\n            // Siguiente anomalía independiente\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n    }\n\n    // Las demás cartas pueden tener alguna anomalía inesperada\n    else if (Math.random() < 0.0025) {\n\n        const jump = (25 + Math.random() * 10) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice = oldPrice * (1 + direction * jump);\n\n        node.warn(\n            \"ANOMALÍA INESPERADA: \" + card.name +\n            \" | \" + (direction > 0 ? \"SUBIDA\" : \"BAJADA\") +\n            \" del \" + (jump * 100).toFixed(2) + \"%\"\n        );\n    }\n\n    newPrice = Math.max(0.01, Number(newPrice.toFixed(2)));\n\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\ncontext.set(\"simState\", sim);\n\nreturn [messages];\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -230,162 +230,6 @@
         "x": 400,
         "y": 260,
         "wires": []
-    },
-    {
-        "id": "8536d42569535ba6",
-        "type": "kafka-suite-producer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "Producer",
-        "broker": "8da3327cc61a9b85",
-        "topic": "market.prices.mtg",
-        "key": "",
-        "partition": "",
-        "compression": "none",
-        "acks": "-1",
-        "timeout": 30000,
-        "autoCreateTopics": true,
-        "headersProperty": "headers",
-        "schemaRegistry": "",
-        "x": 1020,
-        "y": 140,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "0a3ecc848b0ee404",
-        "type": "kafka-suite-producer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "Producer",
-        "broker": "8da3327cc61a9b85",
-        "topic": "market.prices.mtg",
-        "key": "",
-        "partition": "",
-        "compression": "none",
-        "acks": "-1",
-        "timeout": 30000,
-        "autoCreateTopics": true,
-        "headersProperty": "headers",
-        "schemaRegistry": "",
-        "x": 680,
-        "y": 880,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "9122a6c7ce85e909",
-        "type": "kafka-suite-producer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "",
-        "broker": "8da3327cc61a9b85",
-        "topic": "market.anomalies.mtg",
-        "key": "",
-        "partition": "",
-        "compression": "none",
-        "acks": "-1",
-        "timeout": 30000,
-        "autoCreateTopics": true,
-        "headersProperty": "headers",
-        "schemaRegistry": "",
-        "x": 1040,
-        "y": 320,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "ad9b36c67c85e360",
-        "type": "kafka-suite-consumer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "Anomaly Consumer",
-        "broker": "8da3327cc61a9b85",
-        "topics": "market.prices.mtg",
-        "groupId": "mtg-anomaly-detector",
-        "startOffset": "latest",
-        "autoCommit": true,
-        "autoCommitInterval": 5000,
-        "messageFormat": "string",
-        "keyFormat": "string",
-        "headersProperty": "headers",
-        "concurrency": 1,
-        "sessionTimeout": 30000,
-        "heartbeatInterval": 3000,
-        "schemaRegistry": "",
-        "x": 370,
-        "y": 320,
-        "wires": [
-            [
-                "9d6bfa6abd427840",
-                "0c7ea672e46c6bfd"
-            ]
-        ]
-    },
-    {
-        "id": "6f3cd12dc75f2455",
-        "type": "kafka-suite-consumer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "Price History Consumer",
-        "broker": "8da3327cc61a9b85",
-        "topics": "market.prices.mtg",
-        "groupId": "mtg-price-history",
-        "startOffset": "latest",
-        "autoCommit": true,
-        "autoCommitInterval": 5000,
-        "messageFormat": "string",
-        "keyFormat": "string",
-        "headersProperty": "headers",
-        "concurrency": 1,
-        "sessionTimeout": 30000,
-        "heartbeatInterval": 3000,
-        "schemaRegistry": "",
-        "x": 390,
-        "y": 520,
-        "wires": [
-            [
-                "c120b52ee04d0104"
-            ]
-        ]
-    },
-    {
-        "id": "636565b1ad984f92",
-        "type": "kafka-suite-consumer",
-        "z": "dafa5e8ec21e16fb",
-        "name": "Alert Manager Consumer",
-        "broker": "8da3327cc61a9b85",
-        "topics": "market.anomalies.mtg",
-        "groupId": "mtg-trend-analyzer",
-        "startOffset": "latest",
-        "autoCommit": true,
-        "autoCommitInterval": 5000,
-        "messageFormat": "string",
-        "keyFormat": "string",
-        "headersProperty": "headers",
-        "concurrency": 1,
-        "sessionTimeout": 30000,
-        "heartbeatInterval": 3000,
-        "schemaRegistry": "",
-        "x": 390,
-        "y": 680,
-        "wires": [
-            [
-                "40275d8863b519f4"
-            ]
-        ]
-    },
-    {
-        "id": "4811dbfda80b3048",
-        "type": "kafka-suite-admin",
-        "z": "dafa5e8ec21e16fb",
-        "name": "kafka admin",
-        "broker": "8da3327cc61a9b85",
-        "action": "listTopics",
-        "allowDestructive": false,
-        "x": 110,
-        "y": 320,
-        "wires": [
-            []
-        ]
     },
     {
         "id": "84f0993eb6a70ad2",
@@ -585,7 +429,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "debug 2",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -601,7 +445,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "debug 3",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -657,7 +501,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "debug REAL",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -674,7 +518,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "debug SIM",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -707,7 +551,7 @@
         "type": "debug",
         "z": "dafa5e8ec21e16fb",
         "name": "Salida API",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -718,6 +562,215 @@
         "x": 570,
         "y": 200,
         "wires": []
+    },
+    {
+        "id": "8536d42569535ba6",
+        "type": "kafka-suite-producer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Producer",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.prices.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 1020,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0a3ecc848b0ee404",
+        "type": "kafka-suite-producer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Producer",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.prices.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 680,
+        "y": 880,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "9122a6c7ce85e909",
+        "type": "kafka-suite-producer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "",
+        "broker": "8da3327cc61a9b85",
+        "topic": "market.anomalies.mtg",
+        "key": "",
+        "partition": "",
+        "compression": "none",
+        "acks": "-1",
+        "timeout": 30000,
+        "autoCreateTopics": true,
+        "headersProperty": "headers",
+        "schemaRegistry": "",
+        "x": 1040,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ad9b36c67c85e360",
+        "type": "kafka-suite-consumer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Anomaly Consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.prices.mtg",
+        "groupId": "mtg-anomaly-detector",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 370,
+        "y": 320,
+        "wires": [
+            [
+                "9d6bfa6abd427840",
+                "0c7ea672e46c6bfd"
+            ]
+        ]
+    },
+    {
+        "id": "6f3cd12dc75f2455",
+        "type": "kafka-suite-consumer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Price History Consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.prices.mtg",
+        "groupId": "mtg-price-history",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 390,
+        "y": 520,
+        "wires": [
+            [
+                "c120b52ee04d0104"
+            ]
+        ]
+    },
+    {
+        "id": "636565b1ad984f92",
+        "type": "kafka-suite-consumer",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Alert Manager Consumer",
+        "broker": "8da3327cc61a9b85",
+        "topics": "market.anomalies.mtg",
+        "groupId": "mtg-trend-analyzer",
+        "startOffset": "latest",
+        "autoCommit": true,
+        "autoCommitInterval": 5000,
+        "messageFormat": "string",
+        "keyFormat": "string",
+        "headersProperty": "headers",
+        "concurrency": 1,
+        "sessionTimeout": 30000,
+        "heartbeatInterval": 3000,
+        "schemaRegistry": "",
+        "x": 390,
+        "y": 680,
+        "wires": [
+            [
+                "40275d8863b519f4"
+            ]
+        ]
+    },
+    {
+        "id": "4811dbfda80b3048",
+        "type": "kafka-suite-admin",
+        "z": "dafa5e8ec21e16fb",
+        "name": "kafka admin",
+        "broker": "8da3327cc61a9b85",
+        "action": "listTopics",
+        "allowDestructive": false,
+        "x": 110,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "05861e945fc0c62c",
+        "type": "telegram receiver",
+        "z": "dafa5e8ec21e16fb",
+        "name": "",
+        "bot": "ee014773650e9f76",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "hasinput": false,
+        "inputs": 0,
+        "handleallupdates": false,
+        "handleprocessupdates": false,
+        "x": 210,
+        "y": 1060,
+        "wires": [
+            [
+                "6dea8686c660916f"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "6dea8686c660916f",
+        "type": "debug",
+        "z": "dafa5e8ec21e16fb",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "9100a987a7188986",
+        "type": "ui-group",
+        "name": "History states",
+        "page": "fad6507741848955",
+        "width": "14",
+        "height": 1,
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default",
+        "keepLoaded": false,
+        "tab": ""
     },
     {
         "id": "8da3327cc61a9b85",
@@ -743,20 +796,31 @@
         "oauthTlsReject": true
     },
     {
-        "id": "9100a987a7188986",
-        "type": "ui-group",
-        "name": "History states",
-        "page": "fad6507741848955",
-        "width": "14",
-        "height": 1,
-        "order": 1,
-        "showTitle": true,
-        "className": "",
-        "visible": "true",
-        "disabled": "false",
-        "groupType": "default",
-        "keepLoaded": false,
-        "tab": ""
+        "id": "ee014773650e9f76",
+        "type": "telegram bot",
+        "botname": "RadarForMagik",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "pollinterval": 300,
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": 6667,
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbothost": "0.0.0.0",
+        "localbotport": 8443,
+        "publicbotport": 8443,
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
     },
     {
         "id": "fad6507741848955",
@@ -835,12 +899,13 @@
         }
     },
     {
-        "id": "3e1acc3315d9d05e",
+        "id": "59cae5c0f891cca7",
         "type": "global-config",
         "env": [],
         "modules": {
+            "@flowfuse/node-red-dashboard": "1.37.0",
             "node-red-contrib-kafka-suite": "0.0.6",
-            "@flowfuse/node-red-dashboard": "1.37.0"
+            "node-red-contrib-telegrambot": "19.0.5"
         }
     }
 ]

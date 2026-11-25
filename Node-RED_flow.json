@@ -1,6 +1,6 @@
 [
     {
-        "id": "1f6f2715d0ae1852",
+        "id": "dafa5e8ec21e16fb",
         "type": "tab",
         "label": "Flujo 1",
         "disabled": false,
@@ -8,9 +8,9 @@
         "env": []
     },
     {
-        "id": "8ca703da524837b2",
+        "id": "ea08fd2ffa2cc70b",
         "type": "inject",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "props": [],
         "repeat": "",
@@ -22,14 +22,14 @@
         "y": 140,
         "wires": [
             [
-                "e8e17bbce85c04bd"
+                "64e4adede35e2617"
             ]
         ]
     },
     {
-        "id": "4aec73ca453e8498",
+        "id": "c120b52ee04d0104",
         "type": "json",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "property": "payload",
         "action": "",
@@ -38,14 +38,14 @@
         "y": 520,
         "wires": [
             [
-                "630b7f70707ca142"
+                "3b54645640bcfc57"
             ]
         ]
     },
     {
-        "id": "59042b6088b61ab4",
+        "id": "4df3ae61deb33f47",
         "type": "http request",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Magic API petition",
         "method": "POST",
         "ret": "obj",
@@ -62,17 +62,17 @@
         "y": 140,
         "wires": [
             [
-                "51f0ed30dc7e3126",
-                "4e6816c1c0637db0"
+                "35c1b1ca76171c7a",
+                "b530e003e4eb3c59"
             ]
         ]
     },
     {
-        "id": "51f0ed30dc7e3126",
+        "id": "35c1b1ca76171c7a",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "function 1",
-        "func": "let payload = msg.payload;\n\nif (typeof payload === \"string\") {\n    payload = JSON.parse(payload);\n}\n\nif (!payload || !Array.isArray(payload.data)) {\n    node.error(\"No se encuentra el array de cartas\", msg);\n    return null;\n}\n\nconst cards = [];\nconst messages = [];\nconst now = new Date().toISOString();\n\nfor (const card of payload.data) {\n    const price = card.prices?.eur;\n\n    if (price === null || price === undefined || price === \"\") {\n        continue;\n    }\n\n    const numericPrice = Number(price);\n    if (!Number.isFinite(numericPrice)) {\n        continue;\n    }\n\n    const item = {\n        card_id: card.id,\n        name: card.name,\n        image_url: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || \"\",\n        set: card.set,\n        rarity: card.rarity,\n        price: numericPrice,\n        currency: \"EUR\"\n    };\n\n    cards.push(item);\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: numericPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\n// Guardar las cartas en contexto GLOBAL\nglobal.set(\"cards\", cards);\n\nnode.warn(\"Cartas guardadas: \" + cards.length);\n\nif (messages.length === 0) {\n    return null;\n}\n\n// Envía una carta por mensaje hacia el siguiente nodo (Producer)\nreturn [messages];",
+        "func": "let payload = msg.payload;\n\nif (typeof payload === \"string\") {\n    payload = JSON.parse(payload);\n}\n\nif (!payload || !Array.isArray(payload.data)) {\n    node.error(\"No se encuentra el array de cartas\", msg);\n    return null;\n}\n\nconst foilMap = flow.get(\"foilMap\") || {};\nconst cards = [];\nconst messages = [];\nconst now = new Date().toISOString();\n\nfunction resolvePrice(prices, pref) {\n    const order = \n        pref === \"E\"\n            ? [\n                { val: prices.eur_etched, cur: \"EUR\", fin: \"etched\" },\n                { val: prices.usd_etched, cur: \"USD\", fin: \"etched\" }\n            ]\n            : pref === \"F\"\n            ? [\n                    { val: prices.eur_foil, cur: \"EUR\", fin: \"foil\" },\n                    { val: prices.usd_foil, cur: \"USD\", fin: \"foil\" }\n            ]\n            : [\n                    { val: prices.eur, cur: \"EUR\", fin: \"normal\" },\n                    { val: prices.usd, cur: \"USD\", fin: \"normal\" }\n            ];\n    \n    for (const candidate of order) {\n        const num = Number(candidate.val);\n        if (candidate.val !== null && candidate.val !== undefined && candidate.val !== \"\" && Number.isFinite(num) && num > 0) {\n            return { price: num, currency: candidate.cur, finish: candidate.fin };\n        }\n    }\n    return null;\n}\n\nfor (const card of payload.data) {\n    const clave = `${(card.set || \"\").toLowerCase()}:${(card.collector_number || \"\").toLowerCase()}`;\n    const finishes = foilMap[clave] || [\"NORMAL\"];\n    \n    for (const pref of finishes) {\n        const resolved = resolvePrice(card.prices || {}, pref);\n\n        const finishType = resolved ? resolved.finish : pref === \"E\" ? \"etched\" : pref === \"F\" ? \"foil\" : \"normal\";\n\n        const suffix = finishType === \"foil\" ? \" [Foil]\" : finishType === \"etched\" ? \" [Etched]\": \"\";\n        const uniqueCardId = `${card.id}:${finishType}`;\n        const hasPrice = resolved !== null;\n\n        const item = {\n            card_id: uniqueCardId,\n            name: `${card.name}${suffix}`,\n            image_url: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || \"\",\n            set: card.set,\n            rarity: card.rarity,\n            finish: finishType,\n            available: hasPrice,\n            price: hasPrice ? resolved.price : null,\n            currency: hasPrice ? resolved.currency : \"EUR\"\n        };\n\n        cards.push(item);\n\n        messages.push({\n            payload: {\n                ...item,\n                timestamp: now,\n                source: \"scryfall\",\n                mode: \"initial\"\n            }\n        });\n    }  \n}\n\n// Save cards to context\nconst prevCards = global.get(\"cards\") || [];\nconst allActiveCards = prevCards.concat(cards);\nglobal.set(\"cards\", allActiveCards);\n\nconst activeIdsList = allActiveCards.map(c => c.card_id);\nfor (const m of messages) {\n    m.payload.active_ids = activeIdsList;\n}\n\nnode.warn(\"Processed cards on lot: \" + (cards.length + 1));\n\nreturn messages.length === 0 ? null : [messages];",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -83,17 +83,17 @@
         "y": 140,
         "wires": [
             [
-                "d5fbfb7d40b68d5a",
-                "db3b0811bc9f2610"
+                "8536d42569535ba6",
+                "7707a4ca0f099e68"
             ]
         ]
     },
     {
-        "id": "5f7a57365e011759",
+        "id": "feb537e17e8a6c24",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "function 2",
-        "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta:\n// guardamos el precio, pero NO enviamos ningún mensaje\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n    return null;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
+        "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta: \n// guardamos el precio, pero NO enviamos ningún mensaje\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n    return null;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date ().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -104,15 +104,15 @@
         "y": 320,
         "wires": [
             [
-                "0b60bed03db5e564",
-                "66d6ec98aae05715"
+                "9122a6c7ce85e909",
+                "33c1b9d86a74b3ac"
             ]
         ]
     },
     {
-        "id": "66d6ec98aae05715",
+        "id": "33c1b9d86a74b3ac",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug 1",
         "active": true,
         "tosidebar": true,
@@ -127,30 +127,30 @@
         "wires": []
     },
     {
-        "id": "c1f752ecb605540e",
+        "id": "5035327a6044a77f",
         "type": "inject",
-        "z": "1f6f2715d0ae1852",
-        "name": "",
+        "z": "dafa5e8ec21e16fb",
+        "name": "tick 5s for simu",
         "props": [],
         "repeat": "5",
         "crontab": "",
         "once": true,
         "onceDelay": "5",
         "topic": "",
-        "x": 200,
+        "x": 220,
         "y": 880,
         "wires": [
             [
-                "2471588c80e39d6b"
+                "6d6586f9af8b92d0"
             ]
         ]
     },
     {
-        "id": "2471588c80e39d6b",
+        "id": "6d6586f9af8b92d0",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "function 3",
-        "func": "\nlet cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    return null;\n}\n\nlet sim = context.get(\"simState\") || {\n    tick: 0,\n    nextEvent: {}\n};\n\nsim.tick++;\n\nconst messages = [];\n\nconst specialCards = [\n    \"Teferi's Protection\",\n    \"Sheoldred, the Apocalypse\"\n];\n\nfunction randomInt(min, max) {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n}\n\nfor (const card of cards) {\n\n    const id = card.card_id;\n    const oldPrice = Number(card.price);\n\n    if (!id || !Number.isFinite(oldPrice) || oldPrice <= 0) {\n        continue;\n    }\n\n    const isSpecial = specialCards.includes(card.name);\n\n    // Variación habitual: entre -0,9 % y +0,9 %\n    const normalVariation = (Math.random() * 1.8 - 0.9) / 100;\n\n    let newPrice = oldPrice * (1 + normalVariation);\n\n    // Pequeños movimientos bruscos para dar dinamismo\n    const smallJumpProbability = isSpecial ? 0.12 : 0.04;\n\n    if (Math.random() < smallJumpProbability) {\n\n        const jump = (1.5 + Math.random() * 3) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice *= (1 + direction * jump);\n    }\n\n    // Las dos cartas protagonistas tienen anomalías programadas\n    if (isSpecial) {\n\n        if (sim.nextEvent[id] === undefined) {\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n\n        if (sim.tick >= sim.nextEvent[id]) {\n\n            const jump = (25 + Math.random() * 10) / 100;\n            const direction = Math.random() < 0.5 ? 1 : -1;\n\n            newPrice = oldPrice * (1 + direction * jump);\n\n\n            // Siguiente anomalía independiente\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n    }\n\n    // Las demás cartas pueden tener alguna anomalía inesperada\n    else if (Math.random() < 0.0025) {\n\n        const jump = (25 + Math.random() * 10) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice = oldPrice * (1 + direction * jump);\n\n        node.warn(\n            \"ANOMALÍA INESPERADA: \" + card.name +\n            \" | \" + (direction > 0 ? \"SUBIDA\" : \"BAJADA\") +\n            \" del \" + (jump * 100).toFixed(2) + \"%\"\n        );\n    }\n\n    newPrice = Math.max(0.01, Number(newPrice.toFixed(2)));\n\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\ncontext.set(\"simState\", sim);\n\nreturn [messages];\n",
+        "func": "let cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    return null;\n}\n\nlet sim = context.get(\"simState\") || {\n    tick: 0,\n    nextEvent: {}\n};\n\nsim.tick++;\n\nconst messages = [];\n\nconst specialCards = [\n    \"Teferi's Protection\",\n    \"Sheoldred, the Apocalypse\"\n];\n\nfunction randomInt(min, max) {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n}\n\nfor (const card of cards) {\n\n    const id = card.card_id;\n    const oldPrice = Number(card.price);\n\n    if (!id || !Number.isFinite(oldPrice) || oldPrice <= 0) {\n        continue;\n    }\n\n    const isSpecial = specialCards.includes(card.name);\n\n    // Variación habitual: entre -0,9 % y +0,9 %\n    const normalVariation = (Math.random() * 1.8 - 0.9) / 100;\n\n    let newPrice = oldPrice * (1 + normalVariation);\n\n    // Pequeños movimientos bruscos para dar dinamismo\n    const smallJumpProbability = isSpecial ? 0.12 : 0.04;\n\n    if (Math.random() < smallJumpProbability) {\n\n        const jump = (1.5 + Math.random() * 3) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice *= (1 + direction * jump);\n    }\n\n    // Las dos cartas protagonistas tienen anomalías programadas\n    if (isSpecial) {\n\n        if (sim.nextEvent[id] === undefined) {\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n\n        if (sim.tick >= sim.nextEvent[id]) {\n\n            const jump = (25 + Math.random() * 10) / 100;\n            const direction = Math.random() < 0.5 ? 1 : -1;\n\n            newPrice = oldPrice * (1 + direction * jump);\n\n\n            // Siguiente anomalía independiente\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n    }\n\n    // Las demás cartas pueden tener alguna anomalía inesperada\n    else if (Math.random() < 0.0025) {\n\n        const jump = (25 + Math.random() * 10) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice = oldPrice * (1 + direction * jump);\n\n        node.warn(\n            \"ANOMALÍA INESPERADA: \" + card.name +\n            \" | \" + (direction > 0 ? \"SUBIDA\" : \"BAJADA\") +\n            \" del \" + (jump * 100).toFixed(2) + \"%\"\n        );\n    }\n\n    newPrice = Math.max(0.01, Number(newPrice.toFixed(2)));\n\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\ncontext.set(\"simState\", sim);\n\nreturn [messages];\n\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -161,17 +161,17 @@
         "y": 880,
         "wires": [
             [
-                "3a9da58a7672f241",
-                "d0a3b6bd46370eec"
+                "0a3ecc848b0ee404",
+                "27e3252ccd16db37"
             ]
         ]
     },
     {
-        "id": "630b7f70707ca142",
+        "id": "3b54645640bcfc57",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "history",
-        "func": "let store = flow.get(\"historyStore\") || {};\nlet selectedId = flow.get(\"selectedCardId\") || null;\n\n// CASE A: user has selected another card to visualize\nif (typeof msg.payload === \"string\") {\n    selectedId = msg.payload;\n    flow.set(\"selectedCardId\", selectedId);\n\n    const cardData = store[selectedId];\n    if (!cardData) return [null, null, null];\n\n    const chartMsg = {\n        topic: `${cardData.name} (${cardData.set.toUpperCase()})`,\n        payload: cardData.points\n    };\n    const imageMsg = {\n        topic: cardData.name,\n        payload: cardData.image_url || \"\"\n    };\n    return [null, chartMsg, null, imageMsg];\n}\n\n// CASE B: card price update\nconst card = msg.payload;\nif (!card || !card.card_id || typeof card.price !== \"number\") {\n    return [null, null, null];\n}\n\nconst id = card.card_id;\nconst timeMs = card.timestamp ? new Date(card.timestamp).getTime() : Date.now();\nlet isNewCard = false;\n\n// if card is new initialize history\nif (!store[id]) {\n    isNewCard = true;\n    store[id] = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        image_url: card.image_url || \"\",\n        initialPrice: card.price,\n        currentPrice: card.price,\n        points: []\n    };\n} else if (!store[id].image_url && card.image_url) {\n    store[id].image_url = card.image_url;\n}\n\n// Price update\nstore[id].currentPrice = card.price;\nstore[id].points.push({ x: timeMs, y: card.price });\nif (store[id].points.length > 50) {\n    store[id].points.shift();\n}\n\n// if there is no card selected, the first one to arrive is selected\nif (!selectedId) {\n    selectedId = id;\n    flow.set(\"selectedCardId\", selectedId);\n}\n\nflow.set(\"historyStore\", store);\n\n// OUTPUT 1: option update\nlet dropdownMsg = null;\nif (isNewCard) {\n    const options = Object.values(store)\n        .map( c=> ({ label: `${c.name} (${c.set.toUpperCase()})`, value: c.card_id}))\n        .sort((a, b) => a.label.localeCompare(b.label));\n    dropdownMsg = { options: options };\n}\n\n// OUTPUT 2: graph update\nlet chartMsg = null;\nlet imageMsg = null;\nif (id === selectedId) {\n    chartMsg = {\n        topic: `${store[id].name} (${store[id].set.toUpperCase()})`,\n        payload: store[id].points\n    };\n    imageMsg = {\n        topic: store[id].name,\n        payload: store[id].image_url || \"\"\n    }\n}\n\n// OUTPUT 3: Top 10 best rises\nconst ranking = Object.values(store)\n    .map(c => {\n        const diffPct = ((c.currentPrice - c.initialPrice) / c.initialPrice) * 100;\n        return {\n            Card: c.name,\n            Set: c.set.toUpperCase(),\n            \"Initial (€)\": c.initialPrice.toFixed(2),\n            \"Current (€)\": c.currentPrice.toFixed(2),\n            \"Difference (€)\": Number(diffPct.toFixed(2)),\n        };\n    })\n    .sort((a, b) => b[\"Difference (%)\"] - a[\"Difference (%)\"])\n    .slice(0, 10);\n\nconst tableMsg = { payload: ranking };\n\nreturn [dropdownMsg, chartMsg, tableMsg, imageMsg];",
+        "func": "let store = flow.get(\"historyStore\") || {};\nlet selectedId = flow.get(\"selectedCardId\") || null;\n\n// CASE A: user has selected another card to visualize\nif (typeof msg.payload === \"string\") {\n    selectedId = msg.payload;\n    flow.set(\"selectedCardId\", selectedId);\n\n    const cardData = store[selectedId];\n    if (!cardData) return [null, null, null, null];\n\n    const chartMsg = {\n        topic: `${cardData.name} (${cardData.set.toUpperCase()})`,\n        payload: cardData.points\n    };\n    const imageMsg = {\n        topic: cardData.name,\n        payload: cardData.image_url || \"\"\n    };\n    return [null, chartMsg, null, imageMsg];\n}\n\n// CASE B: card price update\nconst card = msg.payload;\nif (!card || !card.card_id || (card.price !== null && typeof card.price !== \"number\")) {\n    return [null, null, null, null];\n}\n\nconst id = card.card_id;\nconst timeMs = card.timestamp ? new Date(card.timestamp).getTime() : Date.now();\nconst isAvailable = card.available !== false && typeof card.price === \"number\" && card.price > 0;\nlet listChanged = false;\nlet selectionChanged = false;\n\n// Sincronize store with active maze: keeps active cards historic data and deletes legacies\nif (Array.isArray(card.active_ids) && card.active_ids.length > 0){\n    const activeIds = new Set(card.active_ids);\n    if (!activeIds.has(id)) {\n        return [null, null, null, null];\n    }\n    for (const storedId of Object.keys(store)) {\n        if (!activeIds.has(storedId)) {\n            delete store[storedId];\n            listChanged = true;\n        }\n    }\n    if (selectedId && !activeIds.has(selectedId)) {\n        selectedId = null;\n        selectionChanged = true;\n    }\n}\n\n    \n\n\n// if card is new initialize history\nif (!store[id]) {\n    listChanged = true;\n    store[id] = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        image_url: card.image_url || \"\",\n        currency: card.currency || \"EUR\",\n        available: isAvailable,\n        initialPrice: isAvailable ? card.price : null,\n        currentPrice: isAvailable ? card.price : null,\n        points: []\n    };\n} else if (!store[id].image_url && card.image_url) {\n    store[id].image_url = card.image_url;\n}\n\nconst isRedundantInitial = card.source === \"scryfall\" && store[id].points.length > 0;\n// Price update only if available\nif (isAvailable && !isRedundantInitial) {\n    store[id].available = true;\n    store[id].currency = card.currency || store[id].currency;\n    store[id].currentPrice = card.price;\n    store[id].points.push({ x: timeMs, y: card.price });\n    if (store[id].points.length > 50) {\n        store[id].points.shift();\n    }\n}\n\n// if there is no card selected, the first one to arrive is selected\nif (!selectedId || !store[selectedId]) {\n    const keys = Object.keys(store);\n    selectedId = keys.length > 0 ? keys[0] : null;\n    flow.set(\"selectedCardId\", selectedId);\n    selectionChanged = true;\n}\n\nflow.set(\"historyStore\", store);\n\n// OUTPUT 1: option update\nlet dropdownMsg = null;\nif (listChanged || selectionChanged) {\n    const options = Object.values(store)\n        .map( c=> ({ label: `${c.name} (${c.set.toUpperCase()})`, value: c.card_id}))\n        .sort((a, b) => a.label.localeCompare(b.label));\n    dropdownMsg = { options: options, payload: selectedId };\n}\n\n// OUTPUT 2 & 4: graph & image update\nlet chartMsg = null;\nlet imageMsg = null;\nif (selectedId && store[selectedId] && (id === selectedId || selectionChanged)) {\n    const target = store [selectedId];\n    chartMsg = {\n        topic: `${target.name} (${target.set.toUpperCase()})`,\n        payload: target.points\n    };\n    imageMsg = {\n        topic: target.name,\n        payload: target.image_url || \"\"\n    }\n}\n\n// OUTPUT 3: Top 10 best rises ()\nconst ranking = Object.values(store)\n    .map(c => {\n        if (!c.available || c.initialPrice === null || c.currentPrice === null) {\n            return {\n                Card: c.name,\n                Set: c.set.toUpperCase(),\n                Initial: \"Not available\",\n                Current: \"Not available\",\n                _sortDiff: -999999,\n                \"Difference (%)\": \"N/A\"\n            };\n        }\n\n        const diffPct = ((c.currentPrice - c.initialPrice) / c.initialPrice) * 100;\n        const unit = c.currency === \"USD\" ? \"$\" : \"€\";\n        return {\n            Card: c.name,\n            Set: c.set.toUpperCase(),\n            Initial: `${c.initialPrice.toFixed(2)} ${unit}`,\n            Current: `${c.currentPrice.toFixed(2)} ${unit}`,\n            _sortDiff: Number(diffPct.toFixed(2)),\n            \"Difference (%)\": Number(diffPct.toFixed(2))\n        };\n    })\n    .sort((a, b) => b._sortDiff - a._sortDiff)\n    .slice(0, 10)\n    .map(({ _sortDiff, ...visibleCols }) => visibleCols);\n\nconst tableMsg = { payload: ranking };\n\nreturn [dropdownMsg, chartMsg, tableMsg, imageMsg];",
         "outputs": 4,
         "timeout": 0,
         "noerr": 0,
@@ -182,23 +182,23 @@
         "y": 520,
         "wires": [
             [
-                "2672f8c86603bb48"
+                "84f0993eb6a70ad2"
             ],
             [
-                "ac5f0d7eabe0f0f5"
+                "2c92d72470da2b44"
             ],
             [
-                "188aa68fb5d12035"
+                "7e8093ca29ee0abd"
             ],
             [
-                "342a81a87f7947b2"
+                "58443226903f3ef3"
             ]
         ]
     },
     {
-        "id": "1ab07aee9bba780a",
+        "id": "e218faf3c1112d52",
         "type": "comment",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "API request",
         "info": "",
         "x": 110,
@@ -206,9 +206,9 @@
         "wires": []
     },
     {
-        "id": "4d1fbc870e449b8e",
+        "id": "3be6c59efe7d587d",
         "type": "comment",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Kafka processing",
         "info": "",
         "x": 120,
@@ -216,9 +216,9 @@
         "wires": []
     },
     {
-        "id": "1692c4d50b979feb",
+        "id": "f9c5472b768b761e",
         "type": "comment",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Group: mtg-anomaly-detector",
         "info": "",
         "x": 400,
@@ -226,9 +226,9 @@
         "wires": []
     },
     {
-        "id": "d5fbfb7d40b68d5a",
+        "id": "8536d42569535ba6",
         "type": "kafka-suite-producer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Producer",
         "broker": "8da3327cc61a9b85",
         "topic": "market.prices.mtg",
@@ -247,9 +247,9 @@
         ]
     },
     {
-        "id": "3a9da58a7672f241",
+        "id": "0a3ecc848b0ee404",
         "type": "kafka-suite-producer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Producer",
         "broker": "8da3327cc61a9b85",
         "topic": "market.prices.mtg",
@@ -268,9 +268,9 @@
         ]
     },
     {
-        "id": "0b60bed03db5e564",
+        "id": "9122a6c7ce85e909",
         "type": "kafka-suite-producer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "broker": "8da3327cc61a9b85",
         "topic": "market.anomalies.mtg",
@@ -289,9 +289,9 @@
         ]
     },
     {
-        "id": "d14f5020329da160",
+        "id": "ad9b36c67c85e360",
         "type": "kafka-suite-consumer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Anomaly Consumer",
         "broker": "8da3327cc61a9b85",
         "topics": "market.prices.mtg",
@@ -310,15 +310,15 @@
         "y": 320,
         "wires": [
             [
-                "b086969046d06ae2",
-                "6db8c6644a3a7483"
+                "9d6bfa6abd427840",
+                "0c7ea672e46c6bfd"
             ]
         ]
     },
     {
-        "id": "3ec04b8f6275625a",
+        "id": "6f3cd12dc75f2455",
         "type": "kafka-suite-consumer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Price History Consumer",
         "broker": "8da3327cc61a9b85",
         "topics": "market.prices.mtg",
@@ -337,14 +337,14 @@
         "y": 520,
         "wires": [
             [
-                "4aec73ca453e8498"
+                "c120b52ee04d0104"
             ]
         ]
     },
     {
-        "id": "b2e2e14b53513803",
+        "id": "636565b1ad984f92",
         "type": "kafka-suite-consumer",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Alert Manager Consumer",
         "broker": "8da3327cc61a9b85",
         "topics": "market.anomalies.mtg",
@@ -359,18 +359,18 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 510,
+        "x": 390,
         "y": 680,
         "wires": [
             [
-                "43ad45c5a6736c5f"
+                "40275d8863b519f4"
             ]
         ]
     },
     {
-        "id": "6747a8391e434994",
+        "id": "4811dbfda80b3048",
         "type": "kafka-suite-admin",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "kafka admin",
         "broker": "8da3327cc61a9b85",
         "action": "listTopics",
@@ -382,9 +382,9 @@
         ]
     },
     {
-        "id": "2672f8c86603bb48",
+        "id": "84f0993eb6a70ad2",
         "type": "ui-dropdown",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "group": "9100a987a7188986",
         "name": "Card selection",
         "label": "Select Option:",
@@ -413,14 +413,14 @@
         "y": 420,
         "wires": [
             [
-                "630b7f70707ca142"
+                "3b54645640bcfc57"
             ]
         ]
     },
     {
-        "id": "188aa68fb5d12035",
+        "id": "7e8093ca29ee0abd",
         "type": "ui-table",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "group": "9100a987a7188986",
         "name": "Top rises",
         "label": "",
@@ -445,9 +445,9 @@
         ]
     },
     {
-        "id": "ac5f0d7eabe0f0f5",
+        "id": "2c92d72470da2b44",
         "type": "ui-chart",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "group": "9100a987a7188986",
         "name": "Card Evolution",
         "label": "Card Evolution",
@@ -507,9 +507,9 @@
         ]
     },
     {
-        "id": "342a81a87f7947b2",
+        "id": "58443226903f3ef3",
         "type": "ui-template",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "group": "9100a987a7188986",
         "page": "",
         "ui": "",
@@ -532,9 +532,9 @@
         ]
     },
     {
-        "id": "43ad45c5a6736c5f",
+        "id": "40275d8863b519f4",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Telegram message builder",
         "func": "\nconst alertData =\n  typeof msg.payload === \"string\"\n    ? JSON.parse(msg.payload)\n    : msg.payload;\n\nif (!alertData || typeof alertData !== \"object\") {\n  return null;\n}\n\nconst currency = alertData.currency || \"EUR\";\nconst pct = Number(alertData.change_percent ?? 0);\nconst subida = pct > 0;\n\nconst cardName = alertData.name || \"Unknown card\";\nconst price = Number(alertData.new_price);\n\nconst point = subida ? \"🔴\" : \"🟢\";\nconst status = subida ? \"PRICE INCREASE\" : \"PRICE DECREASE\";\nconst arrow = subida ? \"▲\" : \"▼\";\nconst sign = pct > 0 ? \"+\" : \"\";\n\nconst priceText = Number.isFinite(price)\n  ? `${price.toFixed(2)} ${currency}`\n  : \"Not available\";\n\nconst telegramText =\n  `${point} <b>${status}</b>\\n\\n` +\n  `🃏 <b>${cardName}</b>\\n\\n` +\n  `💰 <b>${priceText}</b>\\n\\n` +\n  `<b>${arrow} ${sign}${pct.toFixed(2)}%</b>`;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\nconst CHAT_ID = env.get(\"TELEGRAM_CHAT_ID\");\n\nif (!TOKEN || !CHAT_ID) {\n  node.error(\"Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID\");\n  return null;\n}\n\nmsg.method = \"POST\";\nmsg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\nmsg.headers = {\n  \"Content-Type\": \"application/json\"\n};\n\nmsg.payload = {\n  chat_id: CHAT_ID,\n  text: telegramText,\n  parse_mode: \"HTML\"\n};\n\nreturn msg;\n",
         "outputs": 1,
@@ -543,19 +543,19 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 840,
+        "x": 720,
         "y": 700,
         "wires": [
             [
-                "3088e974778e35ba",
-                "69d51bf557e6c60d"
+                "6696dd6cbecc2def",
+                "ae38228209dc5cc9"
             ]
         ]
     },
     {
-        "id": "3088e974778e35ba",
+        "id": "ae38228209dc5cc9",
         "type": "http request",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "method": "POST",
         "ret": "txt",
@@ -568,33 +568,32 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 1070,
-        "y": 780,
+        "x": 970,
+        "y": 760,
         "wires": [
             []
         ]
     },
     {
-        "id": "69d51bf557e6c60d",
+        "id": "6696dd6cbecc2def",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug 2",
         "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
+        "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1080,
+        "x": 960,
         "y": 680,
         "wires": []
     },
     {
-        "id": "b086969046d06ae2",
+        "id": "9d6bfa6abd427840",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug 3",
         "active": true,
         "tosidebar": true,
@@ -608,9 +607,9 @@
         "wires": []
     },
     {
-        "id": "e8e17bbce85c04bd",
+        "id": "64e4adede35e2617",
         "type": "file in",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "filename": "/mazos/mazo.txt",
         "filenameType": "str",
@@ -619,20 +618,20 @@
         "sendError": false,
         "encoding": "none",
         "allProps": false,
-        "x": 300,
-        "y": 80,
+        "x": 310,
+        "y": 40,
         "wires": [
             [
-                "26e7b9d9aebbd4ff"
+                "702922e40536517c"
             ]
         ]
     },
     {
-        "id": "26e7b9d9aebbd4ff",
+        "id": "702922e40536517c",
         "type": "function",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "str-json",
-        "func": "const texto = typeof msg.payload === \"string\" ? msg.payload : \"\";\n\nif (!texto.trim()) {\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Texto vacío\" });\n    node.error(\"msg.payload está vacío o no es un string. Revisa la ruta en file in.\", msg);\n    return null;\n}\n\nconst lineas = texto.split(/\\r?\\n/);\nconst identificadores = [];\nconst vistos = new Set();\nconst sinMatch = [];\n\nfor (const rawLinea of lineas) {\n    const linea = rawLinea.trim();\n    if (!linea) continue;\n\n    const match = linea.match(/^\\d+\\s+(.+?)\\s+\\(([A-Za-z0-9]+)\\)\\s+([A-Za-z0-9-]+)(?:\\s+\\*([A-Za-z0-9]+)\\*)?$/);\n\n    if (!match) {\n        sinMatch.push(linea);\n        continue;\n    }\n\n    const set = match[2].toLowerCase();\n    const collector_number = match[3];\n    const clave = `${set}:${collector_number.toLowerCase()}`;\n\n    if (!vistos.has(clave)) {\n        vistos.add(clave);\n        identificadores.push({ set, collector_number });\n    }\n}\n\nif (sinMatch.length > 0) {\n    node.warn(`Líneas no reconocidas (${sinMatch.length}): ${sinMatch.join(\" | \")}`);\n}\n\nconst TAMANO_LOTE = 75;\nconst lotes = [];\n\nfor (let i = 0; i < identificadores.length; i += TAMANO_LOTE) {\n    lotes.push({\n        headers: {\n            \"User-Agent\": \"MTGRadarNodeRED/1.0\",\n            \"Accept\": \"application/json\",\n            \"Content-Type\": \"application/json\"\n        },\n        payload: {\n            identifiers: identificadores.slice(i, i + TAMANO_LOTE)\n        }\n    });\n}\n\nnode.status({\n    fill: \"green\",\n    shape: \"dot\",\n    text: `${identificadores.length} cartas · ${lotes.length} lote(s)`\n});\n\n// En esta prueba devolvemos el primer lote (o un array de lotes) al debug\nreturn lotes.length === 1 ? lotes[0] : [lotes];",
+        "func": "const texto = typeof msg.payload === \"string\" ? msg.payload : \"\";\n\nif (!texto.trim()) {\n    node.status({ fill: \"red\", shape: \"ring\", text: \"Texto vacío\" });\n    node.error(\"msg.payload está vacío o no es un string. Revisa la ruta en file in.\", msg);\n    return null;\n}\n\n// Reinitialize cards active list for simulator and dashboard filter\nglobal.set(\"cards\", []);\n\nconst lineas = texto.split(/\\r?\\n/);\nconst identificadores = [];\nconst vistos = new Set();\nconst sinMatch = [];\nconst foilMap = {};\n\nfor (const rawLinea of lineas) {\n    const linea = rawLinea.trim();\n    if (!linea) continue;\n\n    // Capture: quantity, name, set, collector number and optionally F or E.\n    const match = linea.match(/^\\d+\\s+(.+?)\\s+\\(([A-Za-z0-9]+)\\)\\s+([A-Za-z0-9-]+)(?:\\s+\\*([A-Za-z0-9]+)\\*)?$/);\n\n    if (!match) {\n        sinMatch.push(linea);\n        continue;\n    }\n\n    const set = match[2].toLowerCase();\n    const collector_number = match[3];\n    const finishTag = (match[4] || \"NORMAL\").toUpperCase();\n    const keyCard = `${set}:${collector_number.toLowerCase()}`;\n    const clave = `${keyCard}:${finishTag}`;\n\n    // Save finish tag for card\n    if (!foilMap[keyCard]) foilMap[keyCard] = [];\n    if (!foilMap[keyCard].includes(finishTag)) {\n        foilMap[keyCard].push(finishTag);\n    }\n\n    if (!vistos.has(clave)) {\n        vistos.add(clave);\n        identificadores.push({ set, collector_number });\n    }\n}\n\nflow.set(\"foilMap\", foilMap);\n\nif (sinMatch.length > 0) {\n    node.warn(`Líneas no reconocidas (${sinMatch.length}): ${sinMatch.join(\" | \")}`);\n}\n\nconst TAMANO_LOTE = 75;\nconst lotes = [];\n\nfor (let i = 0; i < identificadores.length; i += TAMANO_LOTE) {\n    lotes.push({\n        headers: {\n            \"User-Agent\": \"MTGRadarNodeRED/1.0\",\n            \"Accept\": \"application/json\",\n            \"Content-Type\": \"application/json\"\n        },\n        payload: {\n            identifiers: identificadores.slice(i, i + TAMANO_LOTE)\n        }\n    });\n}\n\nnode.status({\n    fill: \"green\",\n    shape: \"dot\",\n    text: `${identificadores.length} cards · ${lotes.length} lot(s)`\n});\n\nreturn lotes.length === 1 ? lotes[0] : [lotes];",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -643,15 +642,15 @@
         "y": 80,
         "wires": [
             [
-                "59042b6088b61ab4",
-                "46f6af0d65ac0c77"
+                "4df3ae61deb33f47",
+                "a5b83b454aedccc2"
             ]
         ]
     },
     {
-        "id": "db3b0811bc9f2610",
+        "id": "7707a4ca0f099e68",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug REAL",
         "active": true,
         "tosidebar": true,
@@ -666,9 +665,9 @@
         "wires": []
     },
     {
-        "id": "d0a3b6bd46370eec",
+        "id": "27e3252ccd16db37",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug SIM",
         "active": true,
         "tosidebar": true,
@@ -683,9 +682,9 @@
         "wires": []
     },
     {
-        "id": "6db8c6644a3a7483",
+        "id": "0c7ea672e46c6bfd",
         "type": "json",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "",
         "property": "payload",
         "action": "",
@@ -694,14 +693,14 @@
         "y": 320,
         "wires": [
             [
-                "5f7a57365e011759"
+                "feb537e17e8a6c24"
             ]
         ]
     },
     {
-        "id": "4e6816c1c0637db0",
+        "id": "b530e003e4eb3c59",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
         "name": "Salida API",
         "active": true,
         "tosidebar": true,
@@ -716,9 +715,104 @@
         "wires": []
     },
     {
-        "id": "46f6af0d65ac0c77",
+        "id": "072955c94c85e435",
+        "type": "watch",
+        "z": "dafa5e8ec21e16fb",
+        "name": "watcher",
+        "files": "/mazos/mazo.txt",
+        "recursive": "",
+        "x": 130,
+        "y": 200,
+        "wires": [
+            [
+                "64e4adede35e2617"
+            ]
+        ]
+    },
+    {
+        "id": "2fc4ea425e2a83e8",
         "type": "debug",
-        "z": "1f6f2715d0ae1852",
+        "z": "dafa5e8ec21e16fb",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "bb64bdf5b434b62c",
+        "type": "http request",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Telegram http post",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 810,
+        "y": 1100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "37149efe448d793b",
+        "type": "function",
+        "z": "dafa5e8ec21e16fb",
+        "name": " show cards catalog",
+        "func": "\nconst text = String(msg.payload?.content || \"\").trim();\n\n// Detect the /cards command\nif (!/^\\/cards(@\\w+)?$/i.test(text)) {\n    return null;\n}\n\n// Retrieve information\nconst chatId = msg.payload.chatId;\nconst cards = global.get(\"cards\") || [];\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\n// Check token\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Check that cards are available\nif (!Array.isArray(cards) || cards.length === 0) {\n    node.warn(\"No cards loaded in global.cards\");\n    return null;\n}\n\n// Create keyboard with one button per row\nconst keyboard = [];\n\ncards.slice(0, 40).forEach(card => {\n\n    const name = card.name || \"Unknown card\";\n\n    const set = card.set\n        ? ` (${card.set.toUpperCase()})`\n        : \"\";\n\n    keyboard.push([\n        {\n            text: `${name}${set}`,\n            callback_data: \"card:\" + card.card_id\n        }\n    ]);\n});\n\n// Prepare Telegram request\nmsg.method = \"POST\";\n\nmsg.url =\n    `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.payload = {\n    chat_id: chatId,\n    text:\n        \"🃏 PRICE LOOKUP\\n\\nSelect the card whose price you want to check:\",\n    reply_markup: {\n        inline_keyboard: keyboard\n    }\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 1100,
+        "wires": [
+            [
+                "bb64bdf5b434b62c"
+            ]
+        ]
+    },
+    {
+        "id": "cb6d4a0f98115e34",
+        "type": "telegram receiver",
+        "z": "dafa5e8ec21e16fb",
+        "name": "",
+        "bot": "8e030f403a019e30",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "hasinput": false,
+        "inputs": 0,
+        "handleallupdates": false,
+        "handleprocessupdates": false,
+        "x": 190,
+        "y": 1020,
+        "wires": [
+            [
+                "2fc4ea425e2a83e8",
+                "37149efe448d793b"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "a5b83b454aedccc2",
+        "type": "debug",
+        "z": "dafa5e8ec21e16fb",
         "name": "debug str-json",
         "active": true,
         "tosidebar": true,
@@ -729,146 +823,28 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 680,
-        "y": 20,
+        "y": 40,
         "wires": []
     },
     {
-        "id": "44e63f1c2c53b871",
-        "type": "debug",
-        "z": "1f6f2715d0ae1852",
-        "name": "debug 5",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 570,
-        "y": 980,
+        "id": "19e12ab5775db965",
+        "type": "comment",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Group: mtg-price-history",
+        "info": "",
+        "x": 390,
+        "y": 460,
         "wires": []
     },
     {
-        "id": "59a9210e9c45e351",
-        "type": "http request",
-        "z": "1f6f2715d0ae1852",
-        "name": "Telegram http post",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 860,
-        "y": 1100,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "921b0526cc78053b",
-        "type": "function",
-        "z": "1f6f2715d0ae1852",
-        "name": " show cards catalog",
-        "func": "\nconst text = String(msg.payload?.content || \"\").trim();\n\n// Detect the /cards command\nif (!/^\\/cards(@\\w+)?$/i.test(text)) {\n    return null;\n}\n\n// Retrieve information\nconst chatId = msg.payload.chatId;\nconst cards = global.get(\"cards\") || [];\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\n// Check token\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Check that cards are available\nif (!Array.isArray(cards) || cards.length === 0) {\n    node.warn(\"No cards loaded in global.cards\");\n    return null;\n}\n\n// Create keyboard with one button per row\nconst keyboard = [];\n\ncards.slice(0, 40).forEach(card => {\n\n    const name = card.name || \"Unknown card\";\n\n    const set = card.set\n        ? ` (${card.set.toUpperCase()})`\n        : \"\";\n\n    keyboard.push([\n        {\n            text: `${name}${set}`,\n            callback_data: \"card:\" + card.card_id\n        }\n    ]);\n});\n\n// Prepare Telegram request\nmsg.method = \"POST\";\n\nmsg.url =\n    `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.payload = {\n    chat_id: chatId,\n    text:\n        \"🃏 PRICE LOOKUP\\n\\nSelect the card whose price you want to check:\",\n    reply_markup: {\n        inline_keyboard: keyboard\n    }\n};\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 600,
-        "y": 1100,
-        "wires": [
-            [
-                "59a9210e9c45e351"
-            ]
-        ]
-    },
-    {
-        "id": "d9a1abf9558071d3",
-        "type": "function",
-        "z": "1f6f2715d0ae1852",
-        "name": "card management",
-        "func": "\nconst data = msg.payload?.content;\nconst chatId = msg.payload?.chatId;\n\nif (!data || chatId === undefined || !data.startsWith(\"card:\")) {\n    return null;\n}\n\nconst cardId = data.substring(5);\nconst cards = global.get(\"cards\") || [];\nconst card = cards.find(c => c.card_id === cardId);\n\nif (!card) {\n    node.warn(\"Card not found: \" + cardId);\n    return null;\n}\n\n// Current price\nconst price = Number(card.price);\n\n// Find image\nconst image =\n    card.image_uris?.small ||\n    card.image_uris?.normal ||\n    card.image ||\n    card.image_url;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Caption accompanying the image\nconst priceText = Number.isFinite(price)\n    ? `💰 CURRENT PRICE: ${price.toFixed(2)} €`\n    : \"💰 Price not available\";\n\nconst text =\n    `🃏 ${card.name}\\n\\n` +\n    `📦 Set: ${(card.set || \"N/A\").toUpperCase()}\\n` +\n    `💎 Rarity: ${card.rarity || \"N/A\"}\\n\\n` +\n    priceText;\n\n// If an image exists, send a photo\nif (image) {\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendPhoto`;\n    msg.payload = {\n        chat_id: chatId,\n        photo: image,\n        caption: text\n    };\n} else {\n    // If no image exists, send text only\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n    msg.payload = {\n        chat_id: chatId,\n        text: text\n    };\n}\n\nmsg.method = \"POST\";\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 580,
-        "y": 1260,
-        "wires": [
-            [
-                "01043c37b5c4f0be"
-            ]
-        ]
-    },
-    {
-        "id": "01043c37b5c4f0be",
-        "type": "http request",
-        "z": "1f6f2715d0ae1852",
-        "name": "Telegram http post",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 880,
-        "y": 1260,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "99532b3084847bc7",
-        "type": "telegram receiver",
-        "z": "1f6f2715d0ae1852",
-        "name": "",
-        "bot": "ee014773650e9f76",
-        "saveDataDir": "",
-        "filterCommands": false,
-        "hasinput": false,
-        "inputs": 0,
-        "handleallupdates": false,
-        "handleprocessupdates": false,
-        "x": 240,
-        "y": 1020,
-        "wires": [
-            [
-                "44e63f1c2c53b871",
-                "921b0526cc78053b"
-            ],
-            []
-        ]
-    },
-    {
-        "id": "e9e952ec8d369e3c",
-        "type": "telegram event",
-        "z": "1f6f2715d0ae1852",
-        "name": "",
-        "bot": "ee014773650e9f76",
-        "event": "callback_query",
-        "autoanswer": true,
-        "x": 270,
-        "y": 1260,
-        "wires": [
-            [
-                "d9a1abf9558071d3"
-            ]
-        ]
+        "id": "96b018d906153ba5",
+        "type": "comment",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Group: mtg-trend-analyzer",
+        "info": "",
+        "x": 390,
+        "y": 620,
+        "wires": []
     },
     {
         "id": "8da3327cc61a9b85",
@@ -910,7 +886,7 @@
         "tab": ""
     },
     {
-        "id": "ee014773650e9f76",
+        "id": "8e030f403a019e30",
         "type": "telegram bot",
         "botname": "RadarForMagik",
         "usernames": "",
@@ -1013,7 +989,7 @@
         }
     },
     {
-        "id": "54f6b879d3384445",
+        "id": "9661e0331de47b8d",
         "type": "global-config",
         "env": [],
         "modules": {

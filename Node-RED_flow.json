@@ -18,8 +18,8 @@
         "once": true,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 120,
-        "y": 140,
+        "x": 300,
+        "y": 220,
         "wires": [
             [
                 "941a67f2f5e2af59"
@@ -35,7 +35,7 @@
         "action": "",
         "pretty": false,
         "x": 610,
-        "y": 520,
+        "y": 1120,
         "wires": [
             [
                 "c683220ca82c030f"
@@ -58,8 +58,8 @@
         "authType": "basic",
         "senderr": false,
         "headers": [],
-        "x": 350,
-        "y": 140,
+        "x": 950,
+        "y": 260,
         "wires": [
             [
                 "6bcb5ebb5a053c72",
@@ -71,7 +71,7 @@
         "id": "6bcb5ebb5a053c72",
         "type": "function",
         "z": "fd4554347246428a",
-        "name": "function 1",
+        "name": "card data processor",
         "func": "let payload = msg.payload;\n\nif (typeof payload === \"string\") {\n    payload = JSON.parse(payload);\n}\n\nif (!payload || !Array.isArray(payload.data)) {\n    node.error(\"No se encuentra el array de cartas\", msg);\n    return null;\n}\n\nconst foilMap = flow.get(\"foilMap\") || {};\nconst cards = [];\nconst messages = [];\nconst now = new Date().toISOString();\n\nfunction resolvePrice(prices, pref) {\n    const order = \n        pref === \"E\"\n            ? [\n                { val: prices.eur_etched, cur: \"EUR\", fin: \"etched\" },\n                { val: prices.usd_etched, cur: \"USD\", fin: \"etched\" }\n            ]\n            : pref === \"F\"\n            ? [\n                    { val: prices.eur_foil, cur: \"EUR\", fin: \"foil\" },\n                    { val: prices.usd_foil, cur: \"USD\", fin: \"foil\" }\n            ]\n            : [\n                    { val: prices.eur, cur: \"EUR\", fin: \"normal\" },\n                    { val: prices.usd, cur: \"USD\", fin: \"normal\" }\n            ];\n    \n    for (const candidate of order) {\n        const num = Number(candidate.val);\n        if (candidate.val !== null && candidate.val !== undefined && candidate.val !== \"\" && Number.isFinite(num) && num > 0) {\n            return { price: num, currency: candidate.cur, finish: candidate.fin };\n        }\n    }\n    return null;\n}\n\nfor (const card of payload.data) {\n    const clave = `${(card.set || \"\").toLowerCase()}:${(card.collector_number || \"\").toLowerCase()}`;\n    const finishes = foilMap[clave] || [\"NORMAL\"];\n    \n    for (const pref of finishes) {\n        const resolved = resolvePrice(card.prices || {}, pref);\n\n        const finishType = resolved ? resolved.finish : pref === \"E\" ? \"etched\" : pref === \"F\" ? \"foil\" : \"normal\";\n\n        const suffix = finishType === \"foil\" ? \" [Foil]\" : finishType === \"etched\" ? \" [Etched]\": \"\";\n        const uniqueCardId = `${card.id}:${finishType}`;\n        const hasPrice = resolved !== null;\n\n        const item = {\n            card_id: uniqueCardId,\n            name: `${card.name}${suffix}`,\n            image_url: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || \"\",\n            set: card.set,\n            rarity: card.rarity,\n            finish: finishType,\n            available: hasPrice,\n            price: hasPrice ? resolved.price : null,\n            currency: hasPrice ? resolved.currency : \"EUR\"\n        };\n\n        cards.push(item);\n\n        messages.push({\n            payload: {\n                ...item,\n                timestamp: now,\n                source: \"scryfall\",\n                mode: \"initial\"\n            }\n        });\n    }  \n}\n\n// Save cards to context\nconst prevCards = global.get(\"cards\") || [];\nconst allActiveCards = prevCards.concat(cards);\nglobal.set(\"cards\", allActiveCards);\n\nconst activeIdsList = allActiveCards.map(c => c.card_id);\nfor (const m of messages) {\n    m.payload.active_ids = activeIdsList;\n}\n\nnode.warn(\"Processed cards on lot: \" + (cards.length + 1));\n\nreturn messages.length === 0 ? null : [messages];",
         "outputs": 1,
         "timeout": 0,
@@ -79,8 +79,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 800,
-        "y": 140,
+        "x": 1220,
+        "y": 260,
         "wires": [
             [
                 "c7bb642fe5ee629d",
@@ -92,7 +92,7 @@
         "id": "051a872a3f4b6cc7",
         "type": "function",
         "z": "fd4554347246428a",
-        "name": "function 2",
+        "name": "price anomaly detector",
         "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta: \n// guardamos el precio, pero NO enviamos ningún mensaje\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n    return null;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date ().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
@@ -100,8 +100,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 800,
-        "y": 320,
+        "x": 840,
+        "y": 900,
         "wires": [
             [
                 "04f072d9e39364ee",
@@ -113,7 +113,7 @@
         "id": "c70d604946b40dfa",
         "type": "debug",
         "z": "fd4554347246428a",
-        "name": "debug 1",
+        "name": "debug anomaly",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -122,8 +122,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 980,
-        "y": 240,
+        "x": 1100,
+        "y": 820,
         "wires": []
     },
     {
@@ -132,13 +132,13 @@
         "z": "fd4554347246428a",
         "name": "tick 5s for simu",
         "props": [],
-        "repeat": "5",
+        "repeat": "2",
         "crontab": "",
         "once": true,
         "onceDelay": "5",
         "topic": "",
-        "x": 220,
-        "y": 880,
+        "x": 320,
+        "y": 500,
         "wires": [
             [
                 "b5d99e05f9e28922"
@@ -149,7 +149,7 @@
         "id": "b5d99e05f9e28922",
         "type": "function",
         "z": "fd4554347246428a",
-        "name": "function 3",
+        "name": "generate simulation",
         "func": "let cards = global.get(\"cards\");\n\nif (!cards || cards.length === 0) {\n    return null;\n}\n\nlet sim = context.get(\"simState\") || {\n    tick: 0,\n    nextEvent: {}\n};\n\nsim.tick++;\n\nconst messages = [];\n\nconst specialCards = [\n    \"Teferi's Protection\",\n    \"Sheoldred, the Apocalypse\"\n];\n\nfunction randomInt(min, max) {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n}\n\nfor (const card of cards) {\n\n    const id = card.card_id;\n    const oldPrice = Number(card.price);\n\n    if (!id || !Number.isFinite(oldPrice) || oldPrice <= 0) {\n        continue;\n    }\n\n    const isSpecial = specialCards.includes(card.name);\n\n    // Variación habitual: entre -0,9 % y +0,9 %\n    const normalVariation = (Math.random() * 1.8 - 0.9) / 100;\n\n    let newPrice = oldPrice * (1 + normalVariation);\n\n    // Pequeños movimientos bruscos para dar dinamismo\n    const smallJumpProbability = isSpecial ? 0.12 : 0.04;\n\n    if (Math.random() < smallJumpProbability) {\n\n        const jump = (1.5 + Math.random() * 3) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice *= (1 + direction * jump);\n    }\n\n    // Las dos cartas protagonistas tienen anomalías programadas\n    if (isSpecial) {\n\n        if (sim.nextEvent[id] === undefined) {\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n\n        if (sim.tick >= sim.nextEvent[id]) {\n\n            const jump = (25 + Math.random() * 10) / 100;\n            const direction = Math.random() < 0.5 ? 1 : -1;\n\n            newPrice = oldPrice * (1 + direction * jump);\n\n\n            // Siguiente anomalía independiente\n            sim.nextEvent[id] = sim.tick + randomInt(12, 22);\n        }\n    }\n\n    // Las demás cartas pueden tener alguna anomalía inesperada\n    else if (Math.random() < 0.0025) {\n\n        const jump = (25 + Math.random() * 10) / 100;\n        const direction = Math.random() < 0.5 ? 1 : -1;\n\n        newPrice = oldPrice * (1 + direction * jump);\n\n        node.warn(\n            \"ANOMALÍA INESPERADA: \" + card.name +\n            \" | \" + (direction > 0 ? \"SUBIDA\" : \"BAJADA\") +\n            \" del \" + (jump * 100).toFixed(2) + \"%\"\n        );\n    }\n\n    newPrice = Math.max(0.01, Number(newPrice.toFixed(2)));\n\n    card.price = newPrice;\n\n    messages.push({\n        payload: {\n            card_id: card.card_id,\n            name: card.name,\n            image_url: card.image_url,\n            set: card.set,\n            rarity: card.rarity,\n            price: newPrice,\n            currency: \"EUR\",\n            timestamp: new Date().toISOString(),\n            source: \"simulation\",\n            mode: \"simulated\"\n        }\n    });\n}\n\nglobal.set(\"cards\", cards);\ncontext.set(\"simState\", sim);\n\nreturn [messages];\n\n",
         "outputs": 1,
         "timeout": 0,
@@ -157,8 +157,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 440,
-        "y": 880,
+        "x": 570,
+        "y": 500,
         "wires": [
             [
                 "b3582e59ff10b2a6",
@@ -178,8 +178,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 910,
-        "y": 520,
+        "x": 850,
+        "y": 1120,
         "wires": [
             [
                 "69241e0e316bd14c"
@@ -199,20 +199,20 @@
         "id": "5568f032b82651c7",
         "type": "comment",
         "z": "fd4554347246428a",
-        "name": "API request",
+        "name": "API REQUEST",
         "info": "",
-        "x": 110,
-        "y": 80,
+        "x": 280,
+        "y": 140,
         "wires": []
     },
     {
         "id": "05103ae291fd2a48",
         "type": "comment",
         "z": "fd4554347246428a",
-        "name": "Kafka processing",
+        "name": "KAFKA PROCESSING",
         "info": "",
-        "x": 120,
-        "y": 260,
+        "x": 1280,
+        "y": 480,
         "wires": []
     },
     {
@@ -221,8 +221,8 @@
         "z": "fd4554347246428a",
         "name": "Group: mtg-anomaly-detector",
         "info": "",
-        "x": 400,
-        "y": 260,
+        "x": 340,
+        "y": 840,
         "wires": []
     },
     {
@@ -240,8 +240,8 @@
         "autoCreateTopics": true,
         "headersProperty": "headers",
         "schemaRegistry": "",
-        "x": 1020,
-        "y": 140,
+        "x": 1460,
+        "y": 260,
         "wires": [
             []
         ]
@@ -261,8 +261,8 @@
         "autoCreateTopics": true,
         "headersProperty": "headers",
         "schemaRegistry": "",
-        "x": 680,
-        "y": 880,
+        "x": 840,
+        "y": 500,
         "wires": [
             []
         ]
@@ -282,8 +282,8 @@
         "autoCreateTopics": true,
         "headersProperty": "headers",
         "schemaRegistry": "",
-        "x": 1040,
-        "y": 320,
+        "x": 1120,
+        "y": 900,
         "wires": [
             []
         ]
@@ -306,11 +306,10 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 370,
-        "y": 320,
+        "x": 310,
+        "y": 900,
         "wires": [
             [
-                "b12de4453e39e568",
                 "8a3710fdc4535d4e"
             ]
         ]
@@ -333,8 +332,8 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 390,
-        "y": 520,
+        "x": 330,
+        "y": 1120,
         "wires": [
             [
                 "4d835c0a47bb21b3"
@@ -359,8 +358,8 @@
         "sessionTimeout": 30000,
         "heartbeatInterval": 3000,
         "schemaRegistry": "",
-        "x": 390,
-        "y": 680,
+        "x": 330,
+        "y": 1280,
         "wires": [
             [
                 "cb32f8b2e33a5fa9"
@@ -375,8 +374,8 @@
         "broker": "8da3327cc61a9b85",
         "action": "listTopics",
         "allowDestructive": false,
-        "x": 110,
-        "y": 320,
+        "x": 1250,
+        "y": 540,
         "wires": [
             []
         ]
@@ -409,8 +408,8 @@
         "className": "",
         "typeIsComboBox": true,
         "msgTrigger": "onChange",
-        "x": 920,
-        "y": 420,
+        "x": 860,
+        "y": 1000,
         "wires": [
             [
                 "c683220ca82c030f"
@@ -439,7 +438,7 @@
         "action": "replace",
         "className": "",
         "x": 1120,
-        "y": 540,
+        "y": 1080,
         "wires": [
             []
         ]
@@ -501,7 +500,7 @@
         "className": "",
         "interpolation": "linear",
         "x": 1140,
-        "y": 480,
+        "y": 1020,
         "wires": [
             []
         ]
@@ -526,7 +525,7 @@
         "templateScope": "local",
         "className": "",
         "x": 1130,
-        "y": 600,
+        "y": 1140,
         "wires": [
             []
         ]
@@ -543,8 +542,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 720,
-        "y": 700,
+        "x": 660,
+        "y": 1280,
         "wires": [
             [
                 "86af20028ae68b32",
@@ -556,7 +555,7 @@
         "id": "fc1da2e871727fba",
         "type": "http request",
         "z": "fd4554347246428a",
-        "name": "",
+        "name": "Telegram http post",
         "method": "POST",
         "ret": "txt",
         "paytoqs": "ignore",
@@ -568,8 +567,8 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 970,
-        "y": 760,
+        "x": 950,
+        "y": 1280,
         "wires": [
             []
         ]
@@ -578,32 +577,17 @@
         "id": "86af20028ae68b32",
         "type": "debug",
         "z": "fd4554347246428a",
-        "name": "debug 2",
+        "name": "debug alert",
         "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 960,
-        "y": 680,
-        "wires": []
-    },
-    {
-        "id": "b12de4453e39e568",
-        "type": "debug",
-        "z": "fd4554347246428a",
-        "name": "debug 3",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 640,
-        "y": 260,
+        "x": 930,
+        "y": 1360,
         "wires": []
     },
     {
@@ -618,8 +602,8 @@
         "sendError": false,
         "encoding": "none",
         "allProps": false,
-        "x": 310,
-        "y": 40,
+        "x": 520,
+        "y": 260,
         "wires": [
             [
                 "b1f5c09ba66fc4ce"
@@ -638,8 +622,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 500,
-        "y": 80,
+        "x": 720,
+        "y": 260,
         "wires": [
             [
                 "c109c5ef1203975a",
@@ -660,15 +644,15 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 790,
-        "y": 80,
+        "x": 1470,
+        "y": 180,
         "wires": []
     },
     {
         "id": "b218d37044adb0a7",
         "type": "debug",
         "z": "fd4554347246428a",
-        "name": "debug SIM",
+        "name": "debug simulator",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -677,8 +661,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 730,
-        "y": 780,
+        "x": 860,
+        "y": 580,
         "wires": []
     },
     {
@@ -689,8 +673,8 @@
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 570,
-        "y": 320,
+        "x": 590,
+        "y": 900,
         "wires": [
             [
                 "051a872a3f4b6cc7"
@@ -701,7 +685,7 @@
         "id": "febd7111db3a015c",
         "type": "debug",
         "z": "fd4554347246428a",
-        "name": "Salida API",
+        "name": "API exit",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -710,8 +694,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 570,
-        "y": 200,
+        "x": 1180,
+        "y": 340,
         "wires": []
     },
     {
@@ -721,8 +705,8 @@
         "name": "watcher",
         "files": "/mazos/mazo.txt",
         "recursive": "",
-        "x": 130,
-        "y": 200,
+        "x": 310,
+        "y": 280,
         "wires": [
             [
                 "941a67f2f5e2af59"
@@ -742,8 +726,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 680,
-        "y": 40,
+        "x": 940,
+        "y": 180,
         "wires": []
     },
     {
@@ -752,8 +736,8 @@
         "z": "fd4554347246428a",
         "name": "Group: mtg-price-history",
         "info": "",
-        "x": 390,
-        "y": 460,
+        "x": 330,
+        "y": 1060,
         "wires": []
     },
     {
@@ -762,24 +746,25 @@
         "z": "fd4554347246428a",
         "name": "Group: mtg-trend-analyzer",
         "info": "",
-        "x": 390,
-        "y": 620,
+        "x": 330,
+        "y": 1220,
         "wires": []
     },
     {
         "id": "73765d3138675b66",
         "type": "debug",
         "z": "fd4554347246428a",
-        "name": "debug 8",
+        "name": "debug telegram receiver",
         "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 580,
-        "y": 1000,
+        "x": 630,
+        "y": 1600,
         "wires": []
     },
     {
@@ -799,11 +784,9 @@
         "senderr": false,
         "headers": [],
         "x": 870,
-        "y": 1120,
+        "y": 1680,
         "wires": [
-            [
-                "64df9b7058f37e55"
-            ]
+            []
         ]
     },
     {
@@ -818,8 +801,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 610,
-        "y": 1120,
+        "x": 590,
+        "y": 1680,
         "wires": [
             [
                 "b0b79bcb4ddc24b0"
@@ -830,7 +813,7 @@
         "id": "cfcd3ca9457bb325",
         "type": "function",
         "z": "fd4554347246428a",
-        "name": "card management",
+        "name": "show card price and info",
         "func": "\nconst data = msg.payload?.content;\nconst chatId = msg.payload?.chatId;\n\nif (!data || chatId === undefined || !data.startsWith(\"card:\")) {\n    return null;\n}\n\nconst cardId = data.substring(5);\nconst cards = global.get(\"cards\") || [];\nconst card = cards.find(c => c.card_id === cardId);\n\nif (!card) {\n    node.warn(\"Card not found: \" + cardId);\n    return null;\n}\n\n// Current price\nconst price = Number(card.price);\n\n// Find image\nconst image =\n    card.image_uris?.small ||\n    card.image_uris?.normal ||\n    card.image ||\n    card.image_url;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Caption accompanying the image\nconst priceText = Number.isFinite(price)\n    ? `💰 CURRENT PRICE: ${price.toFixed(2)} €`\n    : \"💰 Price not available\";\n\nconst text =\n    `🃏 ${card.name}\\n\\n` +\n    `📦 Set: ${(card.set || \"N/A\").toUpperCase()}\\n` +\n    `💎 Rarity: ${card.rarity || \"N/A\"}\\n\\n` +\n    priceText;\n\n// If an image exists, send a photo\nif (image) {\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendPhoto`;\n    msg.payload = {\n        chat_id: chatId,\n        photo: image,\n        caption: text\n    };\n} else {\n    // If no image exists, send text only\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n    msg.payload = {\n        chat_id: chatId,\n        text: text\n    };\n}\n\nmsg.method = \"POST\";\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
@@ -838,8 +821,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 590,
-        "y": 1280,
+        "x": 610,
+        "y": 1820,
         "wires": [
             [
                 "576a3bfa9970c17a"
@@ -862,8 +845,8 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 890,
-        "y": 1280,
+        "x": 870,
+        "y": 1820,
         "wires": [
             []
         ]
@@ -880,8 +863,8 @@
         "inputs": 0,
         "handleallupdates": false,
         "handleprocessupdates": false,
-        "x": 250,
-        "y": 1040,
+        "x": 310,
+        "y": 1680,
         "wires": [
             [
                 "73765d3138675b66",
@@ -894,12 +877,12 @@
         "id": "8860bc8e99fbe13c",
         "type": "telegram event",
         "z": "fd4554347246428a",
-        "name": "",
+        "name": "Button Event",
         "bot": "ee014773650e9f76",
         "event": "callback_query",
         "autoanswer": true,
-        "x": 280,
-        "y": 1280,
+        "x": 290,
+        "y": 1820,
         "wires": [
             [
                 "cfcd3ca9457bb325"
@@ -907,19 +890,33 @@
         ]
     },
     {
-        "id": "64df9b7058f37e55",
-        "type": "debug",
+        "id": "197530732753f081",
+        "type": "comment",
         "z": "fd4554347246428a",
-        "name": "debug 9",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1130,
-        "y": 1120,
+        "name": "TELEGRAM FLOW",
+        "info": "",
+        "x": 290,
+        "y": 1540,
+        "wires": []
+    },
+    {
+        "id": "1c56bb8940130f10",
+        "type": "comment",
+        "z": "fd4554347246428a",
+        "name": "SIMULATION",
+        "info": "",
+        "x": 270,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "7264f7f0112efc07",
+        "type": "comment",
+        "z": "fd4554347246428a",
+        "name": "KAFKA CONSUMERS",
+        "info": "",
+        "x": 300,
+        "y": 720,
         "wires": []
     },
     {
@@ -1065,7 +1062,7 @@
         }
     },
     {
-        "id": "bdb483d31105f3d1",
+        "id": "3035f240eac33bf6",
         "type": "global-config",
         "env": [],
         "modules": {

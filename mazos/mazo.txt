@@ -1,10 +1,30 @@
-1 Sheoldred, the Apocalypse (DMU) 107
-1 Ragavan, Nimble Pilferer (MUL) 86 *F*
-2 Path to Exile (OTC) 85
-1 Teferi's Protection (2X2) 32
-1 Bolas's Citadel (WAR) 79
-3 Ponder (M12) 68
-1 Birds of Paradise (CN2) 176 *F*
-1 Blood Moon (WOT) 40
-2 Farseek (OTC) 191
-1 Toxic Deluge (MKC) 142
+1 Rendmaw, Creaking Nest (DSC) 5
+1 Adaptive Automaton (FDN) 723 *F*
+1 Arasta of the Endless Web (FDC) 188
+1 Arcane Signet (TMC) 57
+1 Assassin's Trophy (TMC) 55
+1 Barbed Servitor (MKM) 77
+1 Beast Within (TRC) 459
+1 Beastmaster Ascension (ZEN) 159
+1 Blasphemous Edict (PFDN) 57p
+1 Blood Artist (2X2) 70
+1 Blood Seeker (ZEN) 80
+1 Blooming Marsh (POTJ) 266p
+1 Bojuka Bog (PLST) C18-238
+1 Burnished Hart (C21) 238
+1 Cauldron of Essence (PSOS) 179p
+1 Command Tower (TMC) 63
+1 Copper Myr (MRD) 158
+1 Corrupted Conviction (PLST) MOM-98
+1 Courser of Kruphix (BNG) 119
+1 Culling Ritual (OTC) 219
+1 Cultivate (C13) 139
+1 Darkmoss Bridge (MH2) 245
+1 Darksteel Citadel (PLST) MM2-238
+1 Deadly Dispute (CLB) 124
+1 Deathcap Glade (PSOS) 253p
+1 Defend the Rider (DFT) 157
+1 Demolisher Spawn (DSC) 59
+1 Destiny Spinner (PLST) THB-168
+1 Dockside Chef (PLST) NEO-93
+1 Eyeblight's Ending (EMA) 88

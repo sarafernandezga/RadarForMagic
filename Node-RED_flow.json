@@ -93,7 +93,7 @@
         "type": "function",
         "z": "dafa5e8ec21e16fb",
         "name": "function 2",
-        "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta: guardamos el precio\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date ().toISOString(),\n        alert: \"INITIAL_PRICE\"\n    };\n    return msg;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date ().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
+        "func": "\nconst card = msg.payload;\n\n// Guardamos el último precio conocido de cada carta\nlet lastPrices = context.get(\"lastPrices\") || {};\n\n// Identificamos la carta\nconst id = card.card_id;\nconst newPrice = Number(card.price);\n\n// Validaciones\nif (!id || !Number.isFinite(newPrice) || newPrice <= 0) {\n    return null;\n}\n\n// Primera vez que vemos la carta:\n// guardamos el precio, pero NO enviamos ningún mensaje\nif (lastPrices[id] === undefined) {\n    lastPrices[id] = newPrice;\n    context.set(\"lastPrices\", lastPrices);\n    return null;\n}\n\n// Comparamos con el precio anterior\nconst oldPrice = lastPrices[id];\n\nconst changePercent =\n    ((newPrice - oldPrice) / oldPrice) * 100;\n\n// Actualizamos el precio guardado\nlastPrices[id] = newPrice;\ncontext.set(\"lastPrices\", lastPrices);\n\n// Si supera el 20 %, generamos alerta\nif (Math.abs(changePercent) > 20) {\n    msg.key = id;\n    msg.payload = {\n        card_id: id,\n        name: card.name,\n        set: card.set,\n        old_price: oldPrice,\n        new_price: newPrice,\n        currency: card.currency || \"EUR\",\n        change_percent: Number(changePercent.toFixed(2)),\n        image_url: card.image_url || \"\",\n        timestamp: card.timestamp || new Date().toISOString(),\n        alert: \"PRICE_ANOMALY\"\n    };\n    return msg;\n}\n\nreturn null;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -136,7 +136,7 @@
                 "p": "payload"
             }
         ],
-        "repeat": "",
+        "repeat": "2",
         "crontab": "",
         "once": true,
         "onceDelay": "2",
@@ -386,7 +386,7 @@
         "type": "function",
         "z": "dafa5e8ec21e16fb",
         "name": "Telegram message builder",
-        "func": "const alertData =\n  typeof msg.payload === \"string\" ? JSON.parse(msg.payload) : msg.payload;\n\nif (!alertData || typeof alertData !== \"object\") {\n  return null;\n}\n\nconst currency = alertData.currency || \"EUR\";\nconst pct = Number(alertData.change_percent ?? 0);\nconst signo = pct > 0 ? \"+\" : \"\";\nconst nombreCarta = alertData.name || alertData.card_id || \"Carta\";\nconst setCarta = alertData.set ? ` (${alertData.set})` : \"\";\n\nconst textoTelegram =\n  `Alerta de precio (${alertData.alert || \"PRICE_ANOMALY\"})\\n` +\n  `Carta: ${nombreCarta}${setCarta}\\n` +\n  `ID: ${alertData.card_id || \"-\"}\\n` +\n  `Precio anterior: ${alertData.old_price} ${currency}\\n` +\n  `Precio nuevo: ${alertData.new_price} ${currency}\\n` +\n  `Cambio: ${signo}${pct}%`;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\nconst CHAT_ID = env.get(\"TELEGRAM_CHAT_ID\");\n\nmsg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\nmsg.headers = {\n  \"Content-Type\": \"application/json\"\n};\nmsg.payload = {\n  chat_id: CHAT_ID,\n  text: textoTelegram\n};\n\nreturn msg;",
+        "func": "\nconst alertData =\n  typeof msg.payload === \"string\"\n    ? JSON.parse(msg.payload)\n    : msg.payload;\n\nif (!alertData || typeof alertData !== \"object\") {\n  return null;\n}\n\nconst currency = alertData.currency || \"EUR\";\nconst pct = Number(alertData.change_percent ?? 0);\nconst subida = pct > 0;\n\nconst cardName = alertData.name || \"Unknown card\";\nconst price = Number(alertData.new_price);\n\nconst point = subida ? \"🔴\" : \"🟢\";\nconst status = subida ? \"PRICE INCREASE\" : \"PRICE DECREASE\";\nconst arrow = subida ? \"▲\" : \"▼\";\nconst sign = pct > 0 ? \"+\" : \"\";\n\nconst priceText = Number.isFinite(price)\n  ? `${price.toFixed(2)} ${currency}`\n  : \"Not available\";\n\nconst telegramText =\n  `${point} <b>${status}</b>\\n\\n` +\n  `🃏 <b>${cardName}</b>\\n\\n` +\n  `💰 <b>${priceText}</b>\\n\\n` +\n  `<b>${arrow} ${sign}${pct.toFixed(2)}%</b>`;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\nconst CHAT_ID = env.get(\"TELEGRAM_CHAT_ID\");\n\nif (!TOKEN || !CHAT_ID) {\n  node.error(\"Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID\");\n  return null;\n}\n\nmsg.method = \"POST\";\nmsg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\nmsg.headers = {\n  \"Content-Type\": \"application/json\"\n};\n\nmsg.payload = {\n  chat_id: CHAT_ID,\n  text: telegramText,\n  parse_mode: \"HTML\"\n};\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -397,31 +397,9 @@
         "y": 700,
         "wires": [
             [
-                "ae38228209dc5cc9",
-                "6696dd6cbecc2def"
+                "6696dd6cbecc2def",
+                "ae38228209dc5cc9"
             ]
-        ]
-    },
-    {
-        "id": "ae38228209dc5cc9",
-        "type": "http request",
-        "z": "dafa5e8ec21e16fb",
-        "name": "",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "headers": [],
-        "x": 970,
-        "y": 760,
-        "wires": [
-            []
         ]
     },
     {
@@ -735,7 +713,8 @@
         "y": 1060,
         "wires": [
             [
-                "6dea8686c660916f"
+                "6dea8686c660916f",
+                "fe2417f5be478b10"
             ],
             []
         ]
@@ -753,8 +732,130 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 540,
-        "y": 1060,
+        "y": 1020,
         "wires": []
+    },
+    {
+        "id": "4d79dc5dbed633de",
+        "type": "http request",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Telegram http post",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 830,
+        "y": 1140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fe2417f5be478b10",
+        "type": "function",
+        "z": "dafa5e8ec21e16fb",
+        "name": " show cards catalog",
+        "func": "\nconst text = String(msg.payload?.content || \"\").trim();\n\n// Detect the /cards command\nif (!/^\\/cards(@\\w+)?$/i.test(text)) {\n    return null;\n}\n\n// Retrieve information\nconst chatId = msg.payload.chatId;\nconst cards = global.get(\"cards\") || [];\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\n// Check token\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Check that cards are available\nif (!Array.isArray(cards) || cards.length === 0) {\n    node.warn(\"No cards loaded in global.cards\");\n    return null;\n}\n\n// Create keyboard with one button per row\nconst keyboard = [];\n\ncards.slice(0, 40).forEach(card => {\n\n    const name = card.name || \"Unknown card\";\n\n    const set = card.set\n        ? ` (${card.set.toUpperCase()})`\n        : \"\";\n\n    keyboard.push([\n        {\n            text: `${name}${set}`,\n            callback_data: \"card:\" + card.card_id\n        }\n    ]);\n});\n\n// Prepare Telegram request\nmsg.method = \"POST\";\n\nmsg.url =\n    `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nmsg.payload = {\n    chat_id: chatId,\n    text:\n        \"🃏 PRICE LOOKUP\\n\\nSelect the card whose price you want to check:\",\n    reply_markup: {\n        inline_keyboard: keyboard\n    }\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 570,
+        "y": 1140,
+        "wires": [
+            [
+                "4d79dc5dbed633de"
+            ]
+        ]
+    },
+    {
+        "id": "c08a371b306ea684",
+        "type": "telegram event",
+        "z": "dafa5e8ec21e16fb",
+        "name": "",
+        "bot": "ee014773650e9f76",
+        "event": "callback_query",
+        "autoanswer": true,
+        "x": 240,
+        "y": 1300,
+        "wires": [
+            [
+                "966e674d3600e276"
+            ]
+        ]
+    },
+    {
+        "id": "966e674d3600e276",
+        "type": "function",
+        "z": "dafa5e8ec21e16fb",
+        "name": "card management",
+        "func": "\nconst data = msg.payload?.content;\nconst chatId = msg.payload?.chatId;\n\nif (!data || chatId === undefined || !data.startsWith(\"card:\")) {\n    return null;\n}\n\nconst cardId = data.substring(5);\nconst cards = global.get(\"cards\") || [];\nconst card = cards.find(c => c.card_id === cardId);\n\nif (!card) {\n    node.warn(\"Card not found: \" + cardId);\n    return null;\n}\n\n// Current price\nconst price = Number(card.price);\n\n// Find image\nconst image =\n    card.image_uris?.small ||\n    card.image_uris?.normal ||\n    card.image ||\n    card.image_url;\n\nconst TOKEN = env.get(\"TELEGRAM_TOKEN\");\n\nif (!TOKEN) {\n    node.error(\"TELEGRAM_TOKEN not found\");\n    return null;\n}\n\n// Caption accompanying the image\nconst priceText = Number.isFinite(price)\n    ? `💰 CURRENT PRICE: ${price.toFixed(2)} €`\n    : \"💰 Price not available\";\n\nconst text =\n    `🃏 ${card.name}\\n\\n` +\n    `📦 Set: ${(card.set || \"N/A\").toUpperCase()}\\n` +\n    `💎 Rarity: ${card.rarity || \"N/A\"}\\n\\n` +\n    priceText;\n\n// If an image exists, send a photo\nif (image) {\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendPhoto`;\n    msg.payload = {\n        chat_id: chatId,\n        photo: image,\n        caption: text\n    };\n} else {\n    // If no image exists, send text only\n    msg.url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;\n    msg.payload = {\n        chat_id: chatId,\n        text: text\n    };\n}\n\nmsg.method = \"POST\";\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 1300,
+        "wires": [
+            [
+                "9a934efdd139fe29"
+            ]
+        ]
+    },
+    {
+        "id": "ae38228209dc5cc9",
+        "type": "http request",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Telegram http post",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 990,
+        "y": 760,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "9a934efdd139fe29",
+        "type": "http request",
+        "z": "dafa5e8ec21e16fb",
+        "name": "Telegram http post",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 850,
+        "y": 1300,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "9100a987a7188986",
@@ -899,7 +1000,7 @@
         }
     },
     {
-        "id": "59cae5c0f891cca7",
+        "id": "1b1911575133d3b6",
         "type": "global-config",
         "env": [],
         "modules": {

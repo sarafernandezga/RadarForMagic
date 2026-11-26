@@ -11,6 +11,7 @@ Project developed by:
 [System Architecture](#system-architecture)\
 [Node-RED Flow Overview](#node-red-flow-overview)\
 [Infraestructure (`docker-compose.yaml`)](#infraestructure-docker-composeyaml)\
+[Adding a Wish List / Desired Deck](#adding-a-wish-list--desired-deck)\
 [Quick Command Reference](#quick-command-reference)\
 [Accessing & Running the Demo](#accessing--running-the-demo)
 
@@ -19,9 +20,6 @@ An event-driven distributed system for real-time market monitoring of **Magic: T
 ## System Architecture
 
 The project decouples data ingestion from stream processing and visualiztion using **Kafka**, allowing independent `consumer groups`to process events in parallel:
-
-```
-```
 
 ---
 
@@ -80,7 +78,27 @@ The entire stack is containerized using **Docker Compose**, allowing to keep the
 
 - **`nodered`(`nodered/node-red:latest`):** Runs the Node-RED flow engine on port `1880`with persistent storage via the `node_red_data` volume.
 
+    - *Mounted deck directory:* Maps the local `./mazos` directory into the container, allowing Node-RED to read `.txt` decklists directly from the host machine.
+
     - *Installed palette modules:* `node-red-contrib-kafka-suite` and `@flowfuse/node-red-dashboard`.
+
+---
+
+## Adding a Wish List / Desired Deck
+
+The card list is loaded from a plain text (`.txt`) file following the Moxfield export format wich is then parsed.
+
+### 1. Export your decklist from Moxfield
+
+1. Open your deck or wish list on **Moxfield**.
+
+2. Click **Export** -> **Copy for Moxfield** (or copy the text box).
+
+3. Save or update the `.txt` file in the **`/mazos`** folder inside the proyect directory.
+
+### 2. Expected `.txt` Format
+Each line represents a card entry using Moxfield's standard text syntax (`<quantity> <card name> <set code> <collectors number<`):
+The minimun parameters for it to work are the set code and collectors number.
 
 ---
 

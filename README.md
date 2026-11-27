@@ -1,25 +1,38 @@
 # Financial Speculation Radar for MTG
 
 Project developed by:
-- Sara 
-- Laura 
-- Adrián 
+- Sara Fernández García-Morales
+- Laura Lopez Lindo
+- Adrián Martínez Anchuelo
 
 ---
 
 ## Table of Contents
-[System Architecture](#system-architecture)\
-[Node-RED Flow Overview](#node-red-flow-overview)\
-[Infraestructure (`docker-compose.yaml`)](#infraestructure-docker-composeyaml)\
-[Adding a Wish List / Desired Deck](#adding-a-wish-list--desired-deck)\
-[Quick Command Reference](#quick-command-reference)\
-[Accessing & Running the Demo](#accessing--running-the-demo)
+
+- [System Architecture](#system-architecture)
+  - [Kafka Topics](#kafka-topics)
+- [Node-RED Flow Overview](#node-red-flow-overview)
+- [Telegram Bot Integration](#telegram-bot-integration)
+  - [Automatic Price Notifications](#1-automatic-price-notifications)
+  - [Interactive Card Lookup](#2-interactive-card-lookup-cards)
+  - [Configuration](#3-configuration)
+- [Infrastructure (`docker-compose.yaml`)](#infrastructure-docker-composeyaml)
+  - [Environment Variables](#environment-variables)
+- [Quick Command Reference](#quick-command-reference)
+  - [Start the Environment](#start-the-environment)
+  - [Check Status and Logs](#check-status-and-logs)
+  - [Stop and Restart Services](#stop-and-restart-services)
+  - [Clean Reset](#clean-reset)
+- [Accessing & Running the Demo](#accessing--running-the-demo)
 
 An event-driven distributed system for real-time market monitoring of **Magic: The Gathering (MGT)** cards, price anomaly detection (`>20%`), and live dashboard visualization.
 
 ## System Architecture
 
 The project decouples data ingestion from stream processing and visualiztion using **Kafka**, allowing independent `consumer groups`to process events in parallel:
+
+```
+```
 
 ---
 
@@ -64,6 +77,50 @@ The main Node-RED flow is organized into four functional blocks:
 
     - Subscribed exclusively to `market.anomalies.mtg`to dispatch automated notifications via Telegram with the anomaly details and card image.
 
+
+## Telegram Bot Integration
+
+RadarForMagic integrates a Telegram bot that allows users to receive automatic price alerts and interactively check information about the cards in their collection.
+
+### Automatic Price Notifications
+
+The `Alert Manager` (`mtg-trend-analyzer`) consumes anomaly events from the Kafka topic `market.anomalies.mtg`.
+
+When a price variation exceeding the 20% threshold is detected, the flow builds and sends a Telegram notification containing:
+
+- **Price movement indicator:** 🔴 Red for price increases and 🟢 Green for price decreases.
+- **Card name:** Name of the affected card.
+- **Current price:** Latest simulated price in euros (EUR).
+- **Percentage change:** Percentage of the price increase or decrease, accompanied by an upward or downward arrow.
+
+Notifications are sent through the Telegram Bot API using an HTTP POST request to the `sendMessage` endpoint.
+
+### Interactive Card Lookup (`/cards`)
+
+The bot also provides an interactive catalogue that allows users to check the latest information about any card loaded into the system.
+
+The interaction follows these steps:
+
+1. **User command:** The user sends `/cards` to the Telegram bot.
+2. **Message reception:** The Telegram Receiver node captures the incoming message and forwards it to the `show cards catalog` function.
+3. **Catalogue generation:** The function retrieves the monitored cards from Node-RED's global context (`global.cards`) and creates an inline keyboard with one button per card. Each button displays the card name and set, and includes the card's unique identifier (`card_id`) as its `callback_data`.
+4. **Catalogue delivery:** Node-RED sends an HTTP POST request to the Telegram Bot API's `sendMessage` endpoint, including the inline keyboard. Telegram displays the selectable card catalogue directly in the chat.
+5. **Card selection:** When the user presses a button, Telegram generates a `callback_query` event containing the selected card's identifier. The `Button Event` node captures this event and forwards it to the `show card price and info` function.
+6. **Card lookup:** The function extracts the `card_id` from the callback data and searches for the corresponding card in `global.cards`.
+7. **Information delivery:** The bot retrieves the selected card's latest price, image, set and rarity, and sends the information back to the user through the Telegram Bot API. It uses the `sendPhoto` endpoint when an image is available, or `sendMessage` otherwise.
+
+This implementation uses Telegram inline keyboards and callback queries to provide an interactive experience without requiring users to manually type card names or identifiers. Card information is retrieved from Node-RED's global context, rather than making a new Scryfall API request for every selection.
+
+### Configuration
+
+The Telegram integration requires two environment variables:
+
+- **`TELEGRAM_TOKEN`**: Authentication token of the Telegram bot.
+- **`TELEGRAM_CHAT_ID`**: Destination chat identifier used for automatic notifications.
+
+These variables are stored in the `.env` file and accessed from Node-RED using `env.get()`. Sensitive credentials are not stored directly in the exported flows or committed to the repository.
+
+
 ---
 
 ## Infraestructure (`docker-compose.yaml`)
@@ -78,27 +135,7 @@ The entire stack is containerized using **Docker Compose**, allowing to keep the
 
 - **`nodered`(`nodered/node-red:latest`):** Runs the Node-RED flow engine on port `1880`with persistent storage via the `node_red_data` volume.
 
-    - *Mounted deck directory:* Maps the local `./mazos` directory into the container, allowing Node-RED to read `.txt` decklists directly from the host machine.
-
     - *Installed palette modules:* `node-red-contrib-kafka-suite` and `@flowfuse/node-red-dashboard`.
-
----
-
-## Adding a Wish List / Desired Deck
-
-The card list is loaded from a plain text (`.txt`) file following the Moxfield export format wich is then parsed.
-
-### 1. Export your decklist from Moxfield
-
-1. Open your deck or wish list on **Moxfield**.
-
-2. Click **Export** -> **Copy for Moxfield** (or copy the text box).
-
-3. Save or update the `.txt` file in the **`/mazos`** folder inside the proyect directory.
-
-### 2. Expected `.txt` Format
-Each line represents a card entry using Moxfield's standard text syntax (`<quantity> <card name> <set code> <collectors number<`):
-The minimun parameters for it to work are the set code and collectors number.
 
 ---
 
